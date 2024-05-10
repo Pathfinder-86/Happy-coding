@@ -2,6 +2,9 @@
 #define DESIGN_H
 #include <vector>
 #include <bin.h>
+#include <libcell.h>
+#include <unordered_map>
+#include <stdexcept>
 namespace design {
 
 struct CostFactor {
@@ -72,13 +75,40 @@ public:
         return bin_max_utilization;
     }
     void init_bins();
-
-private:
+    // lib_cell
+    void add_lib_cell(LibCell& lib_cell) {
+        int id = lib_cells.size();
+        lib_cell.set_id(id);
+        lib_cells_id_map[lib_cell.get_name()] = id;        
+        lib_cells.push_back(lib_cell);
+    }
+    const LibCell& get_lib_cell(int id) const {
+        if (id >= 0 && id < static_cast<int>(lib_cells.size())) {
+            return lib_cells.at(id);
+        } else {
+            throw std::out_of_range("Invalid lib cell ID");
+        }        
+    }
+    const LibCell& get_lib_cell(const std::string& name) const {
+        if (lib_cells_id_map.find(name) != lib_cells_id_map.end()) {
+            return lib_cells.at(lib_cells_id_map.at(name));
+        } else {
+            throw std::out_of_range("Invalid lib cell name");
+        }
+    }
+    void add_flipflop_id(int bits, int id){
+        bits_flipflop_id_map[bits].push_back(id);
+    }
+    
+private:    
     CostFactor cost_factor;
     std::vector<double> die_boundaries;
     std::pair<double, double> bin_size;
     double bin_max_utilization;
     std::vector<std::vector<Bin>> bins;
+    std::vector<LibCell> lib_cells;
+    std::unordered_map<int,std::vector<int>> bits_flipflop_id_map;
+    std::unordered_map<std::string, int> lib_cells_id_map;
 
 private:
     Design() {} // Private constructor to prevent instantiation
