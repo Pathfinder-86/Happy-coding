@@ -87,6 +87,9 @@ public:
         return bin_max_utilization;
     }
     void init_bins();
+    const std::vector<std::vector<Bin>>& get_bins() const {
+        return bins;
+    }
     // lib_cell
     void add_lib_cell(LibCell& lib_cell) {
         int id = lib_cells.size();

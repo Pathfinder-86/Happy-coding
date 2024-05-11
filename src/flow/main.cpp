@@ -19,7 +19,16 @@ int main(int argc,char *argv[]) {
         output_file = "res/tiny/output.txt";
     }
     command::CommandManager& command_manager = command::CommandManager::get_instance();
-    command_manager.read_input_data(input_file);
-    command_manager.write_output_data(output_file);
+    if(std::get<bool>(config_manager.get_config_value("contest_mode"))) {
+        command_manager.read_input_data(input_file);
+        command_manager.run();
+        command_manager.write_output_data(output_file);        
+    }else if(std::get<bool>(config_manager.get_config_value("plot_mode"))) {
+        command_manager.read_input_data(input_file);
+        command_manager.run();
+        command_manager.write_output_data(output_file);
+        command_manager.write_output_layout_data("plot/tiny/layout.txt");
+        command_manager.write_output_utilization_data("plot/tiny/utilization.txt");
+    }
     return 0;
 }
