@@ -10,6 +10,7 @@ private:
     int x, y;
     int w, h;
     int id;
+    int lib_cell_id;
 public:
     Cell(){}
     Cell(int x, int y, int w, int h) :  x(x), y(y), w(w), h(h) {}
@@ -27,6 +28,9 @@ public:
     void set_id(int id) { this->id = id; }
     void add_pin_id(int pin_id) { pins_id.push_back(pin_id); }
     const std::vector<int>& get_pins_id() const { return pins_id; }
+    void set_lib_cell_id(int lib_cell_id) { this->lib_cell_id = lib_cell_id; }
+    int get_lib_cell_id() const { return lib_cell_id; }
+    void move(int x, int y);
 };
 }
 #endif // CELL_H

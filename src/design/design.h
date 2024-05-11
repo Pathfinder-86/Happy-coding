@@ -12,6 +12,12 @@ struct CostFactor {
     double power_factor = 0.0;
     double area_factor = 0.0;
     double utilization_factor = 0.0;
+    double displacement_delay = 0.0;
+};
+
+struct Row {
+    double x,y;
+    double width,height;    
 };
 
 class Design {
@@ -33,6 +39,9 @@ public:
     void set_utilization_factor(double utilization_factor) {
         cost_factor.utilization_factor = utilization_factor;
     }
+    void set_displacement_delay(double displacement_delay) {
+        cost_factor.displacement_delay = displacement_delay;
+    }
     double get_timing_factor() const {
         return cost_factor.timing_factor;
     }
@@ -44,6 +53,9 @@ public:
     }
     double get_utilization_factor() const {
         return cost_factor.utilization_factor;
+    }
+    double get_displacement_delay() const {
+        return cost_factor.displacement_delay;
     }
     // die boundary
     void add_die_boundary(double boundary) {
@@ -96,8 +108,27 @@ public:
             throw std::out_of_range("Invalid lib cell name");
         }
     }
+    void set_qpin_delay(const std::string& name,double delay){
+        if (lib_cells_id_map.count(name)){
+            int id = lib_cells_id_map.at(name);
+            lib_cells.at(id).set_delay(delay);
+        } else {
+            throw std::out_of_range("Invalid lib cell name");
+        }
+    }
+    void set_gate_power(const std::string& name,double power){
+        if (lib_cells_id_map.count(name)){
+            int id = lib_cells_id_map.at(name);
+            lib_cells.at(id).set_power(power);
+        } else {
+            throw std::out_of_range("Invalid lib cell name");
+        }
+    }
     void add_flipflop_id(int bits, int id){
         bits_flipflop_id_map[bits].push_back(id);
+    }
+    void add_row(double x, double y, double width, double height){
+        rows.push_back(Row{x,y,width,height});
     }
     
 private:    
@@ -109,7 +140,7 @@ private:
     std::vector<LibCell> lib_cells;
     std::unordered_map<int,std::vector<int>> bits_flipflop_id_map;
     std::unordered_map<std::string, int> lib_cells_id_map;
-
+    std::vector<Row> rows;
 private:
     Design() {} // Private constructor to prevent instantiation
     Design(const Design&) = delete; // Delete copy constructor

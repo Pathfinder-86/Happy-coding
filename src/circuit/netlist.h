@@ -8,6 +8,7 @@
 #include <pin.h>
 #include <cell.h>
 #include <net.h>
+#include <stdexcept>
 namespace circuit {
 
 class Netlist {
@@ -49,7 +50,23 @@ public:
         }
     }
 
+    Cell& get_mutable_cell(int id) {
+        if (id >= 0 && id < static_cast<int>(cells.size())) {
+            return cells.at(id);
+        } else {
+            throw std::out_of_range("Invalid cell ID");
+        }
+    }
+
     const Pin& get_pin(int id) const {
+        if (id >= 0 && id < static_cast<int>(pins.size())) {
+            return pins.at(id);
+        } else {
+            throw std::out_of_range("Invalid pin ID");
+        }
+    }
+
+    Pin& get_mutable_pin(int id){
         if (id >= 0 && id < static_cast<int>(pins.size())) {
             return pins.at(id);
         } else {
@@ -75,6 +92,57 @@ public:
 
     const std::vector<Net>& get_nets() const {
         return nets;
+    }
+    int get_cell_id(const std::string& name) const {
+        if (cell_id_map.count(name) > 0) {
+            return cell_id_map.at(name);
+        } else {
+            throw std::runtime_error("Cell name not found:" + name);
+        }
+    }
+    int get_pin_id(const std::string& name) const {
+        if (pin_id_map.count(name) > 0) {
+            return pin_id_map.at(name);
+        } else {
+            throw std::runtime_error("Pin name not found:" + name);
+        }
+    }
+    int get_net_id(const std::string& name) const {
+        if (net_id_map.count(name) > 0) {
+            return net_id_map.at(name);
+        } else {
+            throw std::runtime_error("Net name not found:" + name);
+        }
+    }
+    const std::string& get_cell_name(int id) const {
+        if (id >= 0 && id < static_cast<int>(cell_names.size())) {
+            return cell_names.at(id);
+        } else {
+            throw std::out_of_range("Invalid cell ID:" + std::to_string(id));
+        }
+    }
+    const std::string& get_pin_name(int id) const {
+        if (id >= 0 && id < static_cast<int>(pin_names.size())) {
+            return pin_names.at(id);
+        } else {
+            throw std::out_of_range("Invalid pin ID:" + std::to_string(id));
+        }
+    }
+    const std::string& get_net_name(int id) const {
+        if (id >= 0 && id < static_cast<int>(net_names.size())) {
+            return net_names.at(id);
+        } else {
+            throw std::out_of_range("Invalid net ID:" + std::to_string(id));
+        }
+    }
+    const std::vector<std::string>& get_cell_names() const {
+        return cell_names;
+    }
+    const std::vector<std::string>& get_pin_names() const {
+        return pin_names;
+    }
+    const std::vector<std::string>& get_net_names() const {
+        return net_names;
     }
 
 private:

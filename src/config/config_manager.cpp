@@ -78,13 +78,14 @@ void ConfigManager::parse_config(int argc, char *argv[]){
     }
 }
 
-ConfigValue ConfigManager::get_config_value(const std::string& key){    
+ConfigValue ConfigManager::get_config_value(const std::string& key) const{    
     return config_map.at(key).value;  
 }
 
 void ConfigManager::init_config_value(){
     std::cout<<"init_config_value"<<std::endl;
     add_config("dump_tcl_setting", ConfigType::Bool, false );
+    add_config("check_input_data", ConfigType::Bool, true );
     add_config("max_distance", ConfigType::Double, 10.0 );
     add_config("max_iteration", ConfigType::Int, 100 );
     add_config("version", ConfigType::String, "V1");

@@ -33,7 +33,7 @@ public:
     void add_config(const std::string &key, ConfigType type, const ConfigValue &value);
     void init_config_value();
     void set_config(const std::string& key, const ConfigValue& new_value);
-    ConfigValue get_config_value(const std::string& key);
+    ConfigValue get_config_value(const std::string& key) const;
 };
 }
 #endif // CONFIG_MANAGER_H
