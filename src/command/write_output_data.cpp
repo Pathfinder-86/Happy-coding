@@ -11,7 +11,7 @@
 namespace command{
 void CommandManager::write_output_data(const std::string &filename) {
     // Function implementation goes here
-    std::cout<<"write data to output"<<filename<<std::endl;
+    std::cout<<"write data to output:"<<filename<<std::endl;
     design::Design &design = design::Design::get_instance();
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     std::ofstream file(filename);    
@@ -34,7 +34,7 @@ void CommandManager::write_output_data(const std::string &filename) {
 }
 
 void CommandManager::write_output_layout_data(const std::string &filename) {    
-    std::cout<<"write_output_layout_data"<<filename<<std::endl;
+    std::cout<<"write_output_layout_data:"<<filename<<std::endl;
     design::Design &design = design::Design::get_instance();
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     std::ofstream file(filename);
@@ -61,7 +61,7 @@ void CommandManager::write_output_layout_data(const std::string &filename) {
 
 
 void CommandManager::write_output_utilization_data(const std::string &filename) {    
-    std::cout<<"write_output_utilization_data"<<filename<<std::endl;
+    std::cout<<"write_output_utilization_data:"<<filename<<std::endl;
     design::Design &design = design::Design::get_instance();    
     std::ofstream file(filename);
     std::vector<double> die_boundaries = design.get_die_boundaries();

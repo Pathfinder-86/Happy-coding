@@ -18,6 +18,7 @@ class Bin {
         void set_w(double w) { this->w = w; }
         void set_h(double h) { this->h = h; }
         void set_utilization(double utilization) { this->utilization = utilization; }
+        void add_utilization(double utilization) { this->utilization += utilization; }
     private:
         double x, y;
         double w, h;

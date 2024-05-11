@@ -14,7 +14,7 @@ namespace command {
 
     
     public:
-        void run(){};
+        void run();
         // Read
         void read_input_data(const std::string& filename);        
         // Write

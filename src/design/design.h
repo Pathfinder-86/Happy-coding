@@ -90,6 +90,7 @@ public:
     const std::vector<std::vector<Bin>>& get_bins() const {
         return bins;
     }
+    void update_bins_utilization();
     // lib_cell
     void add_lib_cell(LibCell& lib_cell) {
         int id = lib_cells.size();
@@ -133,7 +134,7 @@ public:
     void add_row(double x, double y, double width, double height){
         rows.push_back(Row{x,y,width,height});
     }
-    
+        
 private:    
     CostFactor cost_factor;
     std::vector<double> die_boundaries;

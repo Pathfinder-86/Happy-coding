@@ -11,11 +11,9 @@ def parse_data(file_path):
         for line in file:
             parts = line.split()
             if parts[0] == 'Die':
-                die_coords = list(map(int, parts[1:]))
-            elif parts[0] == 'RowHeight':
-                row_height = int(parts[1])
+                die_coords = list(map(float, parts[1:]))
             elif parts[0] == 'Bin':
-                bins.append(list(map(int, parts[1:])))
+                bins.append(list(map(float, parts[1:])))
     return die_coords, row_height, bins
 
 def plot_layout(die_coords, row_height, bins):
@@ -29,7 +27,7 @@ def plot_layout(die_coords, row_height, bins):
             [die_coords[1], die_coords[1], die_coords[3], die_coords[3], die_coords[1]], 'k-')
     # Draw bins
     cmap = plt.get_cmap('coolwarm')
-    norm = mcolors.Normalize(vmin=0, vmax=100)  # Assuming utilization is in percentage
+    norm = mcolors.Normalize(vmin=0, vmax=4)
     for bin in bins:
         ax.add_patch(plt.Rectangle((bin[0], bin[1]), bin[2]-bin[0], bin[3]-bin[1], 
                            facecolor=cmap(norm(bin[4])), edgecolor='black', label=str(bin[4])))
