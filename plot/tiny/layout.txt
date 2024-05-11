@@ -1,0 +1,6 @@
+Die 0 0 50 30
+RowHeight 10
+Inst C1 20 0 25 10
+Inst C2 20 10 25 20
+Inst C3 20 20 25 30
+Inst C4 10 10 15 20
