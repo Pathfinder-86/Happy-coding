@@ -53,10 +53,8 @@ void CommandManager::write_output_layout_data(const std::string &filename) {
         std::string cell_name = netlist.get_cell_name(id);
         int lib_cell_id = cell.get_lib_cell_id();
         const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
-        std::string lib_cell_name = lib_cell.get_name();
-        int x = cell.get_x();
-        int y = cell.get_y();
-        file << "Inst "<<cell_name<<" "<<lib_cell_name<<" "<<x<<" "<<y<<std::endl;
+        std::string lib_cell_name = lib_cell.get_name();        
+        file << "Inst "<<cell_name<<" "<<cell.get_x()<<" "<<cell.get_y()<<" "<<cell.get_rx()<<" "<<cell.get_ry()<<std::endl;
     }    
     file.close();
 }

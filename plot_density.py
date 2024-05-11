@@ -36,8 +36,7 @@ def plot_layout(die_coords, row_height, bins):
         ax.text((bin[0]+bin[2])/2, (bin[1]+bin[3])/2, str(bin[4]), 
                 horizontalalignment='center', verticalalignment='center')
 
-    plt.savefig('output.png', dpi=300)
-    plt.show()
+    plt.savefig('utilization.png', dpi=300)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
