@@ -11,9 +11,10 @@ private:
     int w, h;
     int id;
     int lib_cell_id;
+    int parent;
 public:
-    Cell(){}
-    Cell(int x, int y, int w, int h) :  x(x), y(y), w(w), h(h) {}
+    Cell(){ parent = -1;}
+    Cell(int x, int y, int w, int h) :  x(x), y(y), w(w), h(h) { parent = -1; }
     int get_x() const { return x; }
     int get_y() const { return y; }
     int get_w() const { return w; }
@@ -31,6 +32,8 @@ public:
     void set_lib_cell_id(int lib_cell_id) { this->lib_cell_id = lib_cell_id; }
     int get_lib_cell_id() const { return lib_cell_id; }
     void move(int x, int y);
+    void set_parent(int parent) { this->parent = parent; }
+    int get_parent() const { return parent; }
 };
 }
 #endif // CELL_H

@@ -14,10 +14,13 @@ namespace command {
 
     
     public:
+        void run(){};
+        // Read
         void read_input_data(const std::string& filename);        
+        // Write
         void write_output_data(const std::string& filename);
-        
-
+        void write_output_layout_data(const std::string& filename);
+        void write_output_utilization_data(const std::string& filename);
     private:
         CommandManager() {}
         CommandManager(const CommandManager&) = delete;
