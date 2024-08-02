@@ -2,7 +2,7 @@
 CXX := g++
 
 # Flags
-CXXFLAGS := -Wall -Wextra -std=c++17 -fopenmp
+CXXFLAGS := -Wall -Wextra -std=c++17 -fopenmp -g
 
 # Directories
 SRC_DIR := src

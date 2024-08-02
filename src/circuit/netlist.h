@@ -144,6 +144,7 @@ public:
     const std::vector<std::string>& get_net_names() const {
         return net_names;
     }
+    //void cluster_cells(int id1, int id2);
 
 private:
     std::vector<Cell> cells;

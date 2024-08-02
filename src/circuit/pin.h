@@ -3,7 +3,8 @@
 namespace circuit {
 class Pin {
 public:
-    Pin(){ init(); };    
+    // slack should on timing graph remove after timing graph is completed
+    Pin(): id(-1), cell_id(-1), net_id(-1), x(0.0), y(0.0), offset_x(0.0), offset_y(0.0), slack(0.0) {}
     int get_id() const { return id; }
     int get_cell_id() const { return cell_id; }
     int get_net_id() const { return net_id; }
@@ -21,24 +22,16 @@ public:
     double get_offset_y() const { return offset_y; }
     void set_offset_x(double offset_x) { this->offset_x = offset_x; }
     void set_offset_y(double offset_y) { this->offset_y = offset_y; }
+    //  slack  should on timing graph remove after timing graph is completed
     double get_slack() const { return slack; }
     void set_slack(double slack) { this->slack = slack; }
-    void init(){
-        id = -1;
-        cell_id = -1;
-        net_id = -1;
-        x = 0.0;
-        y = 0.0;
-        offset_x = 0.0;
-        offset_y = 0.0;
-        slack = 0.0;    
-    }
 private:
     int id;
     int cell_id;
     int net_id;
     double x, y;
     double offset_x, offset_y;
+    //  slack should on timing graph remove after timing graph is completed
     double slack;
 };
 }

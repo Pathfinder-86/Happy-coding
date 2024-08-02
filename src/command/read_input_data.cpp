@@ -39,40 +39,48 @@ void check_input_data(){
 }
 
 void CommandManager::read_input_data(const std::string &filename) {    
-    std::cout<<"read data from input"<<filename<<std::endl;
+    std::cout<<"read data from input "<<filename<<std::endl;
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     design::Design &design = design::Design::get_instance();
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Cannot open file " + filename);
+    }else{
+        std::cout<<"open file "<<filename<<std::endl;
     }
     std::string token;
     std::stringstream ss;
     ss << file.rdbuf();
     file.close();
+    std::cout << "Parsing input data..." << std::endl;
     while( ss >> token){
         if(token == "Alpha"){
             double factor = 0.0;
             ss >> factor;
-            design.set_timing_factor(factor);
+            design.set_timing_factor(factor);            
+            std::cout<<"set timing factor finish"<<std::endl;
         }else if(token == "Beta"){
             double factor = 0.0;
             ss >> factor;
             design.set_power_factor(factor);
+            std::cout<<"set power factor finish"<<std::endl;
         }else if(token == "Gamma"){
             double factor = 0.0;
             ss >> factor;
             design.set_area_factor(factor);
+            std::cout<<"set area factor finish"<<std::endl;
         }else if(token == "Lambda"){
             double factor = 0.0;
             ss >> factor;
             design.set_utilization_factor(factor);
+            std::cout<<"set utilization factor finish"<<std::endl;
         }else if(token == "DieSize"){
             for(int i = 0; i < 4; i++){
                 double boundary = 0.0;
                 ss >> boundary;
                 design.add_die_boundary(boundary);
             }
+            std::cout<<"set die boundary finish"<<std::endl;
         }else if(token == "NumInput" || token == "NumOutput"){
             int port_num = 0;
             ss >> port_num;
@@ -82,8 +90,13 @@ void CommandManager::read_input_data(const std::string &filename) {
                 double y = 0.0;
                 ss >> token >> name >> x >> y;
                 circuit::Pin pin;
-                netlist.add_pin(pin,name);                            
+                pin.set_x(x);
+                pin.set_y(y);
+                netlist.add_pin(pin,name);   
             }
+
+            std::cout<<"add port finish"<<std::endl;
+
         }else if(token == "FlipFlop"){
             int bits = 0,pin_num = 0;
             std::string name;
@@ -95,18 +108,27 @@ void CommandManager::read_input_data(const std::string &filename) {
                 std::string pin_name;
                 double x = 0.0;
                 double y = 0.0;
-                ss >> token >> pin_name >> x >> y;                                
-                libcell.add_pin(pin_name,x,y);
+                ss >> token >> pin_name >> x >> y;
+                if(pin_name.at(0) == 'D'){                    
+                    libcell.add_pin(pin_name,x,y,0);
+                }else if(pin_name.at(0) == 'Q'){
+                    libcell.add_pin(pin_name,x,y,1);
+                }else{
+                    libcell.add_pin(pin_name,x,y,2);
+                }
             }
             libcell.set_sequential(true);
+            libcell.set_bits(bits);
             design.add_lib_cell(libcell);
             int lib_cell_id = libcell.get_id();
-            design.add_flipflop_id(bits,lib_cell_id);
+            design.add_flipflop_id_to_bits_group(bits,lib_cell_id);
+            std::cout<<"add FF finish"<<std::endl;            
         }else if(token == "Gate"){
             std::string name;
             int pin_num = 0;
             double width = 0.0, height = 0.0;
             ss >> name >> width >> height >> pin_num;
+            std::cout<<"Gate "<<name<<" "<<width<<" "<<height<<" "<<pin_num<<std::endl;
             design::LibCell libcell(name,width,height);
 
             for(int i = 0; i < pin_num; i++){
@@ -114,10 +136,11 @@ void CommandManager::read_input_data(const std::string &filename) {
                 double x = 0.0;
                 double y = 0.0;
                 ss >> token >> pin_name >> x >> y;                                
-                libcell.add_pin(pin_name,x,y);
+                libcell.add_pin(pin_name,x,y,2);
             }
             libcell.set_sequential(false);
-            design.add_lib_cell(libcell);                        
+            design.add_lib_cell(libcell);
+            std::cout<<"add Gate finish"<<std::endl;                        
         } else if(token == "NumInstances"){
             int cell_num = 0;
             ss >> cell_num;
@@ -127,26 +150,36 @@ void CommandManager::read_input_data(const std::string &filename) {
                 double x = 0.0;
                 double y = 0.0;
                 ss >> token >> name >> lib_cell_name >> x >> y;
+                std::cout<<"Instance "<<name<<" "<<lib_cell_name<<" "<<x<<" "<<y<<std::endl;
                 // init cell
                 const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_name);                
                 circuit::Cell cell(x,y,lib_cell.get_width(),lib_cell.get_height());        
                 int lib_cell_id = lib_cell.get_id();
                 cell.set_lib_cell_id(lib_cell_id);
                 // handle pins
-                std::vector<std::string> pins_name = lib_cell.get_pins_name();
-                std::vector<std::pair<double, double>> pins_position = lib_cell.get_pins_position();
-                int pin_size = pins_name.size();            
+                //std::cout<<"Try get_pins_name"<<std::endl;                
+                const std::vector<std::string> &pins_name = lib_cell.get_pins_name();
+                const std::vector<std::pair<double, double>> &pins_position = lib_cell.get_pins_position();                
+                int pin_size = pins_name.size();
+                //for(int j=0;j<pin_size;j++){
+                //    std::cout<<pins_name.at(j)<<std::endl;
+                //    std::cout<<pins_position.at(j).first<<" "<<pins_position.at(j).second<<std::endl;
+                //}
+                //std::cout<<"pins_name size "<<pin_size<<std::endl;           
                 for(int j = 0; j < pin_size; j++){
+                    //std::cout<<"loop:"<<j<<std::endl;
                     circuit::Pin pin;
-                    pin.set_x(pins_position[j].first + x);                    
-                    pin.set_y(pins_position[j].second + y);
-                    pin.set_offset_x(pins_position[j].first);
-                    pin.set_offset_y(pins_position[j].second);
-                    netlist.add_pin(pin,name + "/" + pins_name[j]);
+                    pin.set_x(pins_position.at(j).first + x);                    
+                    pin.set_y(pins_position.at(j).second + y);
+                    pin.set_offset_x(pins_position.at(j).first);
+                    pin.set_offset_y(pins_position.at(j).second);
+                    std::cout<<"add pin "<<name + "/" + pins_name.at(j)<<std::endl;
+                    netlist.add_pin(pin,name + "/" + pins_name.at(j));
                     int pid = pin.get_id();
                     // set pin_id on cell
                     cell.add_pin_id(pid);
                 }
+                //std::cout<<"add pins finish"<<std::endl;
                 netlist.add_cell(cell,name);
                 // set cell_id on pin
                 int cell_id = cell.get_id();
@@ -155,6 +188,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                     pin.set_cell_id(cell_id);
                 }
             }
+            std::cout<<"add NumInstances finish"<<std::endl;
         }else if(token == "NumNets"){
             int net_num = 0;
             ss >> net_num;
@@ -175,7 +209,8 @@ void CommandManager::read_input_data(const std::string &filename) {
                     circuit::Pin &pin = netlist.get_mutable_pin(pin_id);
                     pin.set_net_id(net_id);
                 }
-            }            
+            }
+            std::cout<<"add NumNets finish"<<std::endl;            
         }else if(token == "BinWidth"){
             double x = 0.0;
             double y = 0.0;
@@ -192,7 +227,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             int site_num = 0;
             ss >> x >> y >> site_width >> site_height >> site_num;
             double width = site_width * site_num;
-            design.add_row(x,y,width,site_height);
+            design.add_row(x,y,width,site_height,site_width);
         }else if(token == "DisplacementDelay"){
             double delay = 0.0;
             ss >> delay;
