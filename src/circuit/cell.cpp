@@ -2,7 +2,7 @@
 #include "netlist.h"
 namespace circuit {
 
-void Cell::move(int x, int y) {
+void Cell::move(int x, int y , bool update_timing){ 
     this->x = x;
     this->y = y;
     Netlist &netlist =  Netlist::get_instance();
@@ -11,6 +11,14 @@ void Cell::move(int x, int y) {
         pin.set_x(pin.get_offset_x() + x);
         pin.set_y(pin.get_offset_y() + y);
     }
+    
+    // update_timing?
+    if(update_timing){
+        // TODO: update timing
+    }else{
+        // mark ??
+    }
+    
 }
 
 }

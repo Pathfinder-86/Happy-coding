@@ -31,7 +31,7 @@ public:
     const std::vector<int>& get_pins_id() const { return pins_id; }
     void set_lib_cell_id(int lib_cell_id) { this->lib_cell_id = lib_cell_id; }
     int get_lib_cell_id() const { return lib_cell_id; }
-    void move(int x, int y);
+    void move(int x, int y, bool update_timing = true);
     void set_parent(int parent) { this->parent = parent; }
     int get_parent() const { return parent; }
 };

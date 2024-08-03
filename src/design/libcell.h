@@ -92,7 +92,7 @@ namespace design {
         std::vector<std::pair<double, double>> other_pins_position;
         double power;
         double area;
-        double delay;
+        double delay = 0.0;
 
     };
 }

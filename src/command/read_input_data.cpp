@@ -42,6 +42,8 @@ void CommandManager::read_input_data(const std::string &filename) {
     std::cout<<"read data from input "<<filename<<std::endl;
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     design::Design &design = design::Design::get_instance();
+    timer::Timer &timer = timer::Timer::get_instance();
+    
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Cannot open file " + filename);
@@ -243,7 +245,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             ss >> cell_name >> pin_name >> slack;
             int pin_id = netlist.get_pin_id(cell_name + "/" + pin_name);
             circuit::Pin &pin = netlist.get_mutable_pin(pin_id);
-            pin.set_slack(slack);
+            // TODO: add timing node to timing graph
         }else if(token == "GatePower"){
             std::string lib_cell_name;
             double power = 0.0;
@@ -253,6 +255,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             throw std::runtime_error("Invalid token " + token);
         }
 
+        timer.update_timing();
     }
     std::cout<<"read data from input done"<<std::endl;
     const config::ConfigManager &config = config::ConfigManager::get_instance();
