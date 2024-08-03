@@ -53,7 +53,7 @@ void CommandManager::write_output_layout_data(const std::string &filename) {
         std::string cell_name = netlist.get_cell_name(id);
         int lib_cell_id = cell.get_lib_cell_id();
         const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
-        bool is_flipflop = lib_cell.get_sequential();
+        bool is_flipflop = lib_cell.is_sequential();
         std::string lib_cell_name = lib_cell.get_name();
         std::string cell_type = is_flipflop ? "FF" : "other";
         file << "Inst "<<cell_name<<" "<<cell_type<<" "<<(int)cell.get_x()<<" "<<(int)cell.get_y()<<" "<<(int)cell.get_rx()<<" "<<(int)cell.get_ry()<<std::endl;

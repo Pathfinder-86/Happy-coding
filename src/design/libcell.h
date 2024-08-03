@@ -14,6 +14,7 @@ namespace design {
             power = 0.0;
             area = width * height;
             delay = 0.0;
+            sequential = false;
         }
         const std::string& get_name() const { return name; }
         double get_width() const { return width; }
@@ -74,11 +75,11 @@ namespace design {
         int get_id() const { return id; }
         void set_bits(int bits) { this->bits = bits; }
         int get_bits() const { return bits; }
-        void set_sequential(bool is_sequential) { this->is_sequential = is_sequential; }
-        bool get_sequential() const { return is_sequential; }
+        void set_sequential(bool sequential) { this->sequential = sequential; }
+        bool is_sequential() const { return sequential; }
         void anaylze_input_data();
     private:
-        bool is_sequential;
+        bool sequential;
         int bits = 0;
         int id;
         std::string name;
@@ -92,7 +93,7 @@ namespace design {
         std::vector<std::pair<double, double>> other_pins_position;
         double power;
         double area;
-        double delay;
+        double delay = 0.0;
 
     };
 }

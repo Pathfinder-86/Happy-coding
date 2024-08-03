@@ -3,6 +3,7 @@
 #include "../config/config_manager.h"
 #include <string>
 // ./executable data/testcase/input.txt res/output.txt -f runtcl
+// ./executable data/tiny/input.txt res/output.txt -f runtcl
 int main(int argc,char *argv[]) {
     std::cout << "Hello, 2024 ICCAD ProblemB, Let's go !" << std::endl;
     config::ConfigManager& config_manager = config::ConfigManager::get_instance();
