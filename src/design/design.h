@@ -15,6 +15,21 @@ struct CostFactor {
     double displacement_delay = 0.0;
 };
 
+struct Cost {
+    double timing_cost = 0.0;
+    double power_cost = 0.0;
+    double area_cost = 0.0;
+    double utilization_cost = 0.0;
+    double total_cost = 0.0;
+    void reset(){
+        timing_cost = 0.0;
+        power_cost = 0.0;
+        area_cost = 0.0;
+        utilization_cost = 0.0;
+        total_cost = 0.0;
+    }
+};
+
 struct Row {
     double x,y;
     double width,height;
@@ -24,7 +39,7 @@ struct Row {
 class Design {
 public:
     static Design& get_instance() {
-        static Design instance;
+        static Design instance;        
         return instance;
     }
     // cost funtcion
@@ -143,7 +158,24 @@ public:
     void add_row(double x, double y, double width, double height, double site_width){
         rows.push_back(Row{x,y,width,height,site_width});
     }
-        
+
+    void calculate_cost();
+    double get_total_cost() const {
+        return cost.total_cost;
+    }
+    double get_timing_cost() const {
+        return cost.timing_cost;
+    }
+    double get_power_cost() const {
+        return cost.power_cost;
+    }
+    double get_area_cost() const {
+        return cost.area_cost;
+    }
+    double get_utilization_cost() const {
+        return cost.utilization_cost;
+    }
+
 private:    
     CostFactor cost_factor;
     std::vector<double> die_boundaries;
@@ -154,6 +186,7 @@ private:
     std::unordered_map<int,std::vector<int>> bits_flipflop_id_map;
     std::unordered_map<std::string, int> lib_cells_id_map;
     std::vector<Row> rows;
+    Cost cost;
 private:
     Design() {} // Private constructor to prevent instantiation
     Design(const Design&) = delete; // Delete copy constructor

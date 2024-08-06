@@ -93,6 +93,16 @@ public:
     const std::vector<Net>& get_nets() const {
         return nets;
     }
+    std::vector<Cell> &get_mutable_cells() {
+        return cells;
+    }
+    std::vector<Pin> &get_mutable_pins() {
+        return pins;
+    }
+    std::vector<Net> &get_mutable_nets() {
+        return nets;
+    }
+
     int get_cell_id(const std::string& name) const {
         if (cell_id_map.count(name) > 0) {
             return cell_id_map.at(name);

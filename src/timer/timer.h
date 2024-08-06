@@ -18,10 +18,10 @@ class TimingNode{
         void slack_change(double delay){
             this->slack += delay;
         }
-        int get_id(){
+        int get_id() const{
             return id;
         }
-        double get_slack(){
+        double get_slack() const{
             return slack;
         }
         void set_slack(double slack){
@@ -64,6 +64,17 @@ public:
     bool is_dirty() const {
         return dirty;
     }
+    double get_slack(int pin_id) const {
+        if(timing_nodes.find(pin_id) == timing_nodes.end()){
+            return 0.0;
+        }else{
+            return timing_nodes.at(pin_id).get_slack();
+        }                
+    }
+    void set_slack(int pin_id, double slack) {
+        timing_nodes[pin_id].set_slack(slack);
+    }
+
 private:
     // driver_pin_id -> sink_pin_ids
     std::unordered_map<int,std::unordered_set<int>> timing_graph;

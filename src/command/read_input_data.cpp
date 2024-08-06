@@ -367,7 +367,18 @@ void CommandManager::read_input_data(const std::string &filename) {
     // init timing
     std::cout<<"init timing"<<std::endl;
     timer.init_timing(init_pin_slack_map);
+    // calculate each cell worst slack
+    for(auto &cell : netlist.get_mutable_cells()){
+        cell.calculate_slack();
+    }
+    // check slack
+    for(const auto &cell : netlist.get_cells()){
+        std::cout<<cell.get_slack()<<std::endl;
+    }
 
+    // calculate init cost
+    design.calculate_cost();
+    std::cout<<"init total cost:"<<design.get_total_cost()<<" timing cost:"<<design.get_timing_cost()<<" power cost:"<<design.get_power_cost()<<" area cost:"<<design.get_area_cost()<<std::endl;
 
     std::cout<<"read data from input done"<<std::endl;
     const config::ConfigManager &config = config::ConfigManager::get_instance();
