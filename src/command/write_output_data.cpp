@@ -15,8 +15,21 @@ void CommandManager::write_output_data(const std::string &filename) {
     design::Design &design = design::Design::get_instance();
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     std::ofstream file(filename);    
-    std::vector<circuit::Cell> cells = netlist.get_cells();
+    const std::vector<circuit::Cell> &cells = netlist.get_cells();
+    int current_cell_size = 0;
+
     for(const auto &cell : cells){
+        int parent = cell.get_parent();
+        if(cell.is_sequential()== false || parent != -1){
+            continue;
+        }                
+        current_cell_size++;
+    }        
+    file << "CellInst "<<current_cell_size<<std::endl;
+    for(const auto &cell : cells){
+        if(cell.is_sequential()== false){
+            continue;
+        }
         int parent = cell.get_parent();
         if(parent != -1){
             continue;
@@ -29,7 +42,24 @@ void CommandManager::write_output_data(const std::string &filename) {
         int x = cell.get_x();
         int y = cell.get_y();
         file << "Inst "<<cell_name<<" "<<lib_cell_name<<" "<<x<<" "<<y<<std::endl;
-    }    
+    } 
+    // mapping    
+    const std::vector<std::string> &original_pin_names = netlist.get_original_pin_names();    
+    for(const auto &cell : cells){
+        if(cell.is_sequential()== false){
+            continue;
+        }
+        int parent = cell.get_parent();
+        if(parent != -1){
+            continue;
+        }
+        const std::vector<int> &pins_id = cell.get_pins_id();
+        for(int pin_id : pins_id){            
+            const std::string &original_pin_name = original_pin_names.at(pin_id);
+            const std::string &mapping_pin_name = netlist.get_pin_name(pin_id);
+            file<<original_pin_name<<" map "<<mapping_pin_name<<std::endl;
+        }
+    }
     file.close();
 }
 

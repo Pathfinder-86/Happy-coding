@@ -231,6 +231,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                     pin.set_cell_id(cell_id);
                 }
             }
+            netlist.set_original_pin_names();
             std::cout<<"add NumInstances finish"<<std::endl;
         }else if(token == "NumNets"){
 

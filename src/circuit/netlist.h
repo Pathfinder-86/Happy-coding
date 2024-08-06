@@ -155,6 +155,16 @@ public:
         return net_names;
     }
     //void cluster_cells(int id1, int id2);
+    // for mapping
+    void set_original_pin_names(){
+        original_pin_names = pin_names;
+    }
+    const std::vector<std::string>& get_original_pin_names() const {
+        return original_pin_names;
+    }
+    int cells_size() const { return cells.size(); }
+    int pins_size() const { return pins.size(); }
+    int nets_size() const { return nets.size(); }
 
 private:
     std::vector<Cell> cells;
@@ -167,6 +177,8 @@ private:
     std::vector<std::string> cell_names;
     std::vector<std::string> net_names;
     std::vector<std::string> pin_names;
+    // for mapping
+    std::vector<std::string> original_pin_names;
 
 private:
     Netlist() {} // Private constructor to prevent instantiation
