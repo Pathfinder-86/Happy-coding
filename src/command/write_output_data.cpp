@@ -7,7 +7,7 @@
 #include "../design/bin.h"
 #include "../circuit/netlist.h"
 #include "../circuit/cell.h"
-#include "../circuit/solution.h"
+#include "../estimator/solution.h"
 #include <unordered_set>
 
 namespace command{
@@ -70,8 +70,8 @@ void CommandManager::write_output_data_from_best_solution(const std::string &fil
     std::cout<<"write data to output:"<<filename <<std::endl;
     design::Design &design = design::Design::get_instance();
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    circuit::SolutionManager &solution_manager = circuit::SolutionManager::get_instance();
-    const circuit::Solution &best_solution = solution_manager.get_best_solution();
+    estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
+    const estimator::Solution &best_solution = solution_manager.get_best_solution();
 
     std::ofstream file(filename);
     if(file.is_open() == false){

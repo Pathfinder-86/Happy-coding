@@ -2,7 +2,6 @@
 #include <iostream>
 #include "../circuit/netlist.h"
 #include "../circuit/cell.h"
-#include "../timer/timer.h"
 
 namespace design {
     
@@ -52,35 +51,5 @@ void Design::update_bins_utilization(){
         }        
     }
 }
-
-void Design::calculate_cost(){
-    this->cost.reset();    
-    double timing_factor = get_timing_factor();
-    double power_factor = get_power_factor();
-    double area_factor = get_area_factor();
-    double utilization_factor = get_utilization_factor();
-
-    circuit::Netlist& netlist = circuit::Netlist::get_instance();
-    const std::vector<circuit::Cell>& cells = netlist.get_cells();
-    for(auto& cell : cells){
-        if(cell.is_sequential() == false){
-            continue;
-        }
-        int id = cell.get_id();
-        const std::string &cell_name = netlist.get_cell_name(id);
-        this->cost.area_cost += area_factor * cell.get_area();
-        this->cost.power_cost += power_factor * cell.get_power();
-        this->cost.timing_cost += timing_factor * cell.get_slack();
-        std::cout<<"cell: "<<cell_name<<std::endl;
-        std::cout<<"area: "<<cell.get_area()<<" "<<cell.get_area() * area_factor<<std::endl;
-        std::cout<<"power: "<<cell.get_power()<<" "<<cell.get_power() * power_factor<<std::endl;
-        std::cout<<"slack: "<<cell.get_slack()<<" "<<cell.get_slack() * timing_factor<<std::endl;
-    }
-    // TODO:  add utilization cost
-    this->cost.utilization_cost = utilization_factor * 0.0;
-
-    this->cost.total_cost = this->cost.area_cost + this->cost.power_cost + this->cost.timing_cost + this->cost.utilization_cost;    
-}
-
 
 }

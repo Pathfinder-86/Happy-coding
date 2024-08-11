@@ -2,16 +2,16 @@
 #define SOLUTION_H
 
 #include <vector>
-#include "cell.h"
+#include "../circuit/cell.h"
 #include <unordered_set>
-namespace circuit {    
+namespace estimator {    
     class Solution{
         public:
             Solution(){}
-            Solution(std::vector<Cell> cells, double cost):cells(cells),cost(cost){
+            Solution(std::vector<circuit::Cell> cells, double cost):cells(cells),cost(cost){
                 init_sequential_cells_id();
             }
-            Solution(std::vector<Cell> cells):cells(cells){
+            Solution(std::vector<circuit::Cell> cells):cells(cells){
                 init_sequential_cells_id();
             }
             bool is_available() const{
@@ -37,18 +37,18 @@ namespace circuit {
             const std::unordered_set<int>& get_sequential_cells_id() const{
                 return sequential_cells_id;
             }
-            void update(const std::vector<Cell> &cells){
+            void update(const std::vector<circuit::Cell> &cells){
                 this->cells = cells;
                 init_sequential_cells_id();
             }
             bool is_available(){
                 return !cells.empty();
             }
-            const std::vector<Cell>& get_cells() const{
+            const std::vector<circuit::Cell>& get_cells() const{
                 return cells;
             }
         private:
-            std::vector<Cell> cells;
+            std::vector<circuit::Cell> cells;
             std::unordered_set<int> sequential_cells_id;
             double cost = 0.0;
     };

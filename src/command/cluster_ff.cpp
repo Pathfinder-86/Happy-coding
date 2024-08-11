@@ -1,7 +1,7 @@
 #include "../circuit/netlist.h"
 #include <unordered_set>
 #include "command_manager.h"
-#include "../circuit/solution.h"
+#include "../estimator/solution.h"
 namespace command{
 
 void CommandManager::test_cluster_ff() {    
@@ -20,7 +20,7 @@ void CommandManager::test_cluster_ff() {
     netlist.cluster_cells(first_cell_id,second_cell_id);
     std::cout<<"test_cluster_ff::Clustered two FF cells"<<std::endl;
     // update solution
-    circuit::SolutionManager &solution_manager = circuit::SolutionManager::get_instance();
+    estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
     solution_manager.keep_current_solution();
     solution_manager.keep_best_solution();
 }

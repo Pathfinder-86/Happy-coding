@@ -1,7 +1,7 @@
-#include "netlist.h"
-#include "cell.h"
+#include "../circuit/netlist.h"
+#include "../circuit/cell.h"
 #include "solution.h"
-namespace circuit {    
+namespace estimator {    
 void SolutionManager::keep_best_solution(){
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     best_solution.update(netlist.get_cells());

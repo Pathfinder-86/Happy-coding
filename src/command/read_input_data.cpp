@@ -11,7 +11,8 @@
 #include "../circuit/cell.h"
 #include "../config/config_manager.h"
 #include "../timer/timer.h"
-#include "../circuit/solution.h"
+#include "../estimator/solution.h"
+#include "../estimator/cost.h"
 namespace command{
 
 void check_input_data(){
@@ -63,29 +64,29 @@ void CommandManager::read_input_data(const std::string &filename) {
             double factor = 0.0;
             ss >> factor;
             design.set_timing_factor(factor);            
-            std::cout<<"set timing factor finish"<<std::endl;
+            //std::cout<<"set timing factor finish"<<std::endl;
         }else if(token == "Beta"){
             double factor = 0.0;
             ss >> factor;
             design.set_power_factor(factor);
-            std::cout<<"set power factor finish"<<std::endl;
+            //std::cout<<"set power factor finish"<<std::endl;
         }else if(token == "Gamma"){
             double factor = 0.0;
             ss >> factor;
             design.set_area_factor(factor);
-            std::cout<<"set area factor finish"<<std::endl;
+            //std::cout<<"set area factor finish"<<std::endl;
         }else if(token == "Lambda"){
             double factor = 0.0;
             ss >> factor;
             design.set_utilization_factor(factor);
-            std::cout<<"set utilization factor finish"<<std::endl;
+            //std::cout<<"set utilization factor finish"<<std::endl;
         }else if(token == "DieSize"){
             for(int i = 0; i < 4; i++){
                 double boundary = 0.0;
                 ss >> boundary;
                 design.add_die_boundary(boundary);
             }
-            std::cout<<"set die boundary finish"<<std::endl;
+            //std::cout<<"set die boundary finish"<<std::endl;
         }else if(token == "NumInput" || token == "NumOutput"){
             int port_num = 0;
             int pin_connection_type = (token == "NumInput")? 1 : 0;
@@ -105,7 +106,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                 netlist.add_pin(pin,name);
             }
 
-            std::cout<<"add port finish"<<std::endl;
+            //std::cout<<"add port finish"<<std::endl;
 
         }else if(token == "FlipFlop"){
             int bits = 0,pin_num = 0;
@@ -132,13 +133,13 @@ void CommandManager::read_input_data(const std::string &filename) {
             design.add_lib_cell(libcell);
             int lib_cell_id = libcell.get_id();
             design.add_flipflop_id_to_bits_group(bits,lib_cell_id);
-            std::cout<<"add FF finish"<<std::endl;            
+            //std::cout<<"add FF finish"<<std::endl;            
         }else if(token == "Gate"){
             std::string name;
             int pin_num = 0;
             double width = 0.0, height = 0.0;
             ss >> name >> width >> height >> pin_num;
-            std::cout<<"Gate "<<name<<" "<<width<<" "<<height<<" "<<pin_num<<std::endl;
+            //std::cout<<"Gate "<<name<<" "<<width<<" "<<height<<" "<<pin_num<<std::endl;
             design::LibCell libcell(name,width,height);
 
             for(int i = 0; i < pin_num; i++){
@@ -150,7 +151,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             }
             libcell.set_sequential(false);
             design.add_lib_cell(libcell);
-            std::cout<<"add Gate finish"<<std::endl;                        
+            //std::cout<<"add Gate finish"<<std::endl;                        
         } else if(token == "NumInstances"){
             int cell_num = 0;
             ss >> cell_num;
@@ -160,7 +161,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                 double x = 0.0;
                 double y = 0.0;
                 ss >> token >> name >> lib_cell_name >> x >> y;
-                std::cout<<"Instance "<<name<<" "<<lib_cell_name<<" "<<x<<" "<<y<<std::endl;
+                //std::cout<<"Instance "<<name<<" "<<lib_cell_name<<" "<<x<<" "<<y<<std::endl;
 
                 // Init cell with libcell information
                 const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_name);                
@@ -210,7 +211,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                         }
                     }
 
-                    std::cout<<"add pin "<<name + "/" + pins_name.at(j)<<std::endl;
+                    //std::cout<<"add pin "<<name + "/" + pins_name.at(j)<<std::endl;
                     netlist.add_pin(pin,name + "/" + pins_name.at(j));
                     int pid = pin.get_id();
                     // set pin_id on cell
@@ -234,7 +235,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             }
             netlist.set_original_pin_names();
             netlist.init_all_sequential_cells_id();            
-            std::cout<<"add NumInstances finish"<<std::endl;
+            //std::cout<<"add NumInstances finish"<<std::endl;
         }else if(token == "NumNets"){
 
             // determine pin slack related
@@ -303,7 +304,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                     pin.set_net_id(net_id);
                 }
             }
-            std::cout<<"add NumNets finish"<<std::endl;            
+            //std::cout<<"add NumNets finish"<<std::endl;            
         }else if(token == "BinWidth"){
             double x = 0.0;
             double y = 0.0;
@@ -353,12 +354,12 @@ void CommandManager::read_input_data(const std::string &filename) {
         const circuit::Pin &driver_pin = netlist.get_pin(driver_pin_id);
         if(driver_pin.is_other() == true){
             const std::string &pin_name = netlist.get_pin_name(driver_pin_id);
-            std::cout<<"skip net "<<pin_name<<std::endl;
+            //std::cout<<"skip net "<<pin_name<<std::endl;
             continue;
         }
         int net_id = net.get_id();
         const std::string &net_name = netlist.get_net_name(net_id);
-        std::cout<<"add net "<<net_name<<std::endl;
+        //std::cout<<"add net "<<net_name<<std::endl;
 
         timer.add_net_into_timing_graph(net);
     }
@@ -379,11 +380,14 @@ void CommandManager::read_input_data(const std::string &filename) {
         std::cout<<cell.get_slack()<<std::endl;
     }
 
-    // calculate init cost
-    design.calculate_cost();
-    circuit::SolutionManager &solution_manager = circuit::SolutionManager::get_instance();    
-    solution_manager.keep_init_solution(design.get_total_cost());
-    std::cout<<"init total cost:"<<design.get_total_cost()<<" timing cost:"<<design.get_timing_cost()<<" power cost:"<<design.get_power_cost()<<" area cost:"<<design.get_area_cost()<<std::endl;
+    // calculate init 
+    estimator::CostCalculator cost_calculator;
+    cost_calculator.calculate_cost();    
+    estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
+    solution_manager.keep_init_solution(cost_calculator.get_cost());    
+    std::cout<<"init total cost:"<<cost_calculator.get_cost()<<" timing cost:"<<cost_calculator.get_timing_cost()
+    <<" power cost:"<<cost_calculator.get_power_cost()<<" area cost:"<<cost_calculator.get_area_cost()<<" utilization cost"<<cost_calculator.get_utilization_cost()<<std::endl;
+
     std::cout<<"Test get_init_cost:"<<solution_manager.get_init_cost()<<std::endl;
     std::cout<<"read data from input done"<<std::endl;
     const config::ConfigManager &config = config::ConfigManager::get_instance();
