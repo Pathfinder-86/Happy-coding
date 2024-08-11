@@ -148,6 +148,9 @@ public:
     const std::vector<std::string>& get_cell_names() const {
         return cell_names;
     }
+    void update_pin_name(int id, const std::string& name) {
+        pin_names.at(id) = name;
+    }
     const std::vector<std::string>& get_pin_names() const {
         return pin_names;
     }
@@ -165,6 +168,10 @@ public:
     int cells_size() const { return cells.size(); }
     int pins_size() const { return pins.size(); }
     int nets_size() const { return nets.size(); }
+    // libcell mapping
+    void modify_circuit_since_merge_cell(int c1,int c2);
+    bool cluster_cells(int c1, int c2);
+    void best_libcell_index(const std::vector<int> &bit_lib_cells_id, int &good_index);
 
 private:
     std::vector<Cell> cells;

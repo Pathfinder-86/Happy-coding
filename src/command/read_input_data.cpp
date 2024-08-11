@@ -11,6 +11,7 @@
 #include "../circuit/cell.h"
 #include "../config/config_manager.h"
 #include "../timer/timer.h"
+#include "../circuit/solution.h"
 namespace command{
 
 void check_input_data(){
@@ -379,8 +380,11 @@ void CommandManager::read_input_data(const std::string &filename) {
 
     // calculate init cost
     design.calculate_cost();
+    circuit::SolutionManager &solution_manager = circuit::SolutionManager::get_instance();
+    const std::vector<circuit::Cell> &cells = netlist.get_cells();    
+    solution_manager.set_init_solution(circuit::Solution(cells,design.get_total_cost()));
     std::cout<<"init total cost:"<<design.get_total_cost()<<" timing cost:"<<design.get_timing_cost()<<" power cost:"<<design.get_power_cost()<<" area cost:"<<design.get_area_cost()<<std::endl;
-
+    std::cout<<"Test get_init_cost:"<<solution_manager.get_init_cost()<<std::endl;
     std::cout<<"read data from input done"<<std::endl;
     const config::ConfigManager &config = config::ConfigManager::get_instance();
     if(std::get<bool>(config.get_config_value("check_input_data")) == true){

@@ -41,6 +41,9 @@ public:
     void add_input_pin_id(int pin_id) { input_pins_id.push_back(pin_id); }
     void add_output_pin_id(int pin_id) { output_pins_id.push_back(pin_id); }
     void add_other_pin_id(int pin_id) { output_pins_id.push_back(pin_id); }
+    void set_input_pins_id(const std::vector<int>& input_pins_id) { this->input_pins_id = input_pins_id; }
+    void set_output_pins_id(const std::vector<int>& output_pins_id) { this->output_pins_id = output_pins_id; }
+    void set_other_pins_id(const std::vector<int>& other_pins_id) { this->other_pins_id = other_pins_id; }
     const std::vector<int>& get_input_pins_id() const { return input_pins_id; }
     const std::vector<int>& get_output_pins_id() const { return output_pins_id; }
     const std::vector<int>& get_other_pins_id() const { return other_pins_id; }
@@ -63,6 +66,18 @@ public:
     double get_area() const { return w * h; }
     // power
     double get_power() const;
+    // clear
+    void clear(){
+        input_pins_id.clear();
+        output_pins_id.clear();
+        other_pins_id.clear();
+        x = 0;
+        y = 0;
+        w = 0;
+        h = 0;
+        lib_cell_id = -1;   
+        slack = 0.0;                
+    }    
 };
 }
 #endif // CELL_H

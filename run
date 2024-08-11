@@ -1,2 +1,2 @@
-./executable data/testcase/input.txt res/testcase/output.txt -f runtcl > log
+#./executable data/testcase/input.txt res/testcase/output.txt -f runtcl > log
 ./executable data/tiny/input.txt res/tiny/output.txt -f runtcl
