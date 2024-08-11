@@ -2,6 +2,7 @@
 #include "../circuit/netlist.h"
 #include "../circuit/cell.h"
 #include "../design/design.h"
+#include "../legalizer/utilization.h"
 namespace estimator{
 void CostCalculator::calculate_cost(){
     reset();    
@@ -26,7 +27,9 @@ void CostCalculator::calculate_cost(){
         std::cout<<"slack: "<<cell.get_slack()<<" "<<cell.get_slack() * timing_factor<<std::endl;
     }
     // TODO:  add utilization cost
-    utilization_cost = utilization_factor * 0.0;
+    const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();
+    int overflow_bins = utilization.get_overflow_bins();
+    utilization_cost = utilization_factor * overflow_bins;
 
     total_cost = area_cost + power_cost + timing_cost + utilization_cost;    
 }

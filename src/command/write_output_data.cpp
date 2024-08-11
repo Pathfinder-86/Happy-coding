@@ -9,6 +9,7 @@
 #include "../circuit/cell.h"
 #include "../estimator/solution.h"
 #include <unordered_set>
+#include "../legalizer/utilization.h"
 
 namespace command{
 void CommandManager::write_output_data(const std::string &filename) {
@@ -169,7 +170,8 @@ void CommandManager::write_output_utilization_data(const std::string &filename) 
     std::ofstream file(filename);
     std::vector<double> die_boundaries = design.get_die_boundaries();
     file << "Die "<<(int)die_boundaries.at(0)<<" "<<(int)die_boundaries.at(1)<<" "<<(int)die_boundaries.at(2)<<" "<<(int)die_boundaries.at(3)<<std::endl;    
-    std::vector<std::vector<design::Bin>> bins = design.get_bins();
+    const legalizer::UtilizationCalculator &utilization = legalizer::UtilizationCalculator::get_instance();
+    const std::vector<std::vector<design::Bin>> &bins = utilization.get_bins();
     for(const auto &row : bins){
         for(const auto &bin : row){
             file << "Bin "<<bin.get_x()<<" "<<bin.get_y()<<" "<<bin.get_rx()<<" "<<bin.get_ry()<<" "<<bin.get_utilization()<<std::endl;

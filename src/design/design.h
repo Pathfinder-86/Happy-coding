@@ -81,17 +81,15 @@ public:
     double get_bin_height() const {
         return bin_size.second;
     }
+    double get_bin_area() const {
+        return bin_size.first * bin_size.second;
+    }
     void set_bin_max_utilization(double utilization) {
         bin_max_utilization = utilization;
     }
     double get_bin_max_utilization() const {
         return bin_max_utilization;
-    }
-    void init_bins();
-    const std::vector<std::vector<Bin>>& get_bins() const {
-        return bins;
-    }
-    void update_bins_utilization();
+    }    
     // lib_cell
     void add_lib_cell(LibCell& lib_cell) {
         int id = lib_cells.size();
@@ -148,7 +146,6 @@ private:
     std::vector<double> die_boundaries;
     std::pair<double, double> bin_size;
     double bin_max_utilization;
-    std::vector<std::vector<Bin>> bins;
     std::vector<LibCell> lib_cells;
     std::unordered_map<int,std::vector<int>> bits_flipflop_id_map;
     std::unordered_map<std::string, int> lib_cells_id_map;

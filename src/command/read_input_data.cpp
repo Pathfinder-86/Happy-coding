@@ -13,6 +13,7 @@
 #include "../timer/timer.h"
 #include "../estimator/solution.h"
 #include "../estimator/cost.h"
+#include "../legalizer/utilization.h"
 namespace command{
 
 void check_input_data(){
@@ -313,8 +314,8 @@ void CommandManager::read_input_data(const std::string &filename) {
             design.set_bin_size(x,y);
             double bin_max_utilization = 0.0;
             ss >> token >> bin_max_utilization;
-            design.set_bin_max_utilization(bin_max_utilization);
-            design.init_bins();
+            design.set_bin_max_utilization(bin_max_utilization / 100. );
+            legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
         }else if(token == "PlacementRows"){
             double x = 0.0, y = 0.0;
             double site_width = 0.0, site_height = 0.0;
@@ -347,6 +348,10 @@ void CommandManager::read_input_data(const std::string &filename) {
             throw std::runtime_error("Invalid token " + token);
         }        
     }
+    // update bins
+    legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
+    utilization_calculator.update_bins_utilization();
+
     // add nets to timing graph 
     std::cout<<"add nets to timing graph"<<std::endl;
     for(const auto &net : netlist.get_nets()){                

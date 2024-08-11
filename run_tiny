@@ -1,0 +1,1 @@
+./executable data/tiny/input.txt res/tiny/output.txt -f runtcl
