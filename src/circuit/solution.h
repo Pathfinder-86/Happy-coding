@@ -34,8 +34,18 @@ namespace circuit {
             bool is_sequential_cell(int cell_id){
                 return sequential_cells_id.find(cell_id) != sequential_cells_id.end();
             }
-            std::unordered_set<int> get_sequential_cells_id(){
+            const std::unordered_set<int>& get_sequential_cells_id() const{
                 return sequential_cells_id;
+            }
+            void update(const std::vector<Cell> &cells){
+                this->cells = cells;
+                init_sequential_cells_id();
+            }
+            bool is_available(){
+                return !cells.empty();
+            }
+            const std::vector<Cell>& get_cells() const{
+                return cells;
             }
         private:
             std::vector<Cell> cells;
@@ -48,18 +58,7 @@ namespace circuit {
             static SolutionManager& get_instance(){
                 static SolutionManager instance;
                 return instance;
-            }
-            void set_init_solution(const Solution &solution){
-                init_solution = solution;
-                current_solution = solution;
-                best_solution = solution;
-            }
-            void set_current_solution(const Solution &solution){
-                current_solution = solution;
-            }
-            void set_best_solution(const Solution &solution){
-                best_solution = solution;
-            }
+            }            
             Solution get_init_solution() const{
                 return init_solution;
             }
@@ -69,6 +68,12 @@ namespace circuit {
             Solution get_best_solution() const{
                 return best_solution;
             }
+            Solution &get_mutable_current_solution(){
+                return current_solution;
+            }
+            Solution &get_mutable_best_solution(){
+                return best_solution;
+            }            
             double get_init_cost() const{
                 return init_solution.get_cost();
             }
@@ -78,6 +83,9 @@ namespace circuit {
             double get_best_cost() const{
                 return best_solution.get_cost();
             }
+            void keep_init_solution(double cost = 0.0);
+            void keep_best_solution();
+            void keep_current_solution();            
         private:
             Solution best_solution;
             Solution init_solution;

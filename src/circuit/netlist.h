@@ -9,6 +9,8 @@
 #include <cell.h>
 #include <net.h>
 #include <stdexcept>
+#include <unordered_set>
+
 namespace circuit {
 
 class Netlist {
@@ -172,11 +174,32 @@ public:
     void modify_circuit_since_merge_cell(int c1,int c2);
     bool cluster_cells(int c1, int c2);
     void best_libcell_index(const std::vector<int> &bit_lib_cells_id, int &good_index);
-
+    // sequential cells
+    void init_all_sequential_cells_id(){
+        sequential_cells_id.clear();
+        for(auto &cell: cells){
+            if(cell.is_sequential() && cell.get_parent() == -1){
+                sequential_cells_id.insert(cell.get_id());
+            }
+        }
+    }
+    bool is_sequential_cell(int cell_id){
+        return sequential_cells_id.find(cell_id) != sequential_cells_id.end();
+    }
+    const std::unordered_set<int>& get_sequential_cells_id() const {
+        return sequential_cells_id;
+    }
+    void remove_sequential_cell(int cell_id){
+        sequential_cells_id.erase(cell_id);
+    }
+    void add_sequential_cell(int cell_id){
+        sequential_cells_id.insert(cell_id);
+    }
 private:
     std::vector<Cell> cells;
     std::vector<Net> nets;
     std::vector<Pin> pins;
+
     // name
     std::unordered_map<std::string, int> cell_id_map;
     std::unordered_map<std::string, int> net_id_map;
@@ -186,6 +209,7 @@ private:
     std::vector<std::string> pin_names;
     // for mapping
     std::vector<std::string> original_pin_names;
+    std::unordered_set<int> sequential_cells_id;
 
 private:
     Netlist() {} // Private constructor to prevent instantiation

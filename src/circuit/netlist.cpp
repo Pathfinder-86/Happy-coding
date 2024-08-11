@@ -42,6 +42,9 @@ void Netlist::best_libcell_index(const std::vector<int> &bit_lib_cells_id, int &
 }
 
 void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
+    const std::string &cell_name1 = get_cell_name(id1);
+    const std::string &cell_name2 = get_cell_name(id2);
+    std::cout<<"modify_circuit_since_merge_cell: "<<cell_name1<<" "<<cell_name2<<std::endl;
     const design::Design &design = design::Design::get_instance();
     Cell& cell1 = get_mutable_cell(id1);
     Cell& cell2 = get_mutable_cell(id2);
@@ -49,8 +52,7 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
     int lib_cell_id2 = cell2.get_lib_cell_id();
     const design::LibCell &lib_cell1 = design.get_lib_cell(lib_cell_id1);
     const design::LibCell &lib_cell2 = design.get_lib_cell(lib_cell_id2);
-    // netlist.get_cell_name()
-    const std::string &cell_name1 = get_cell_name(id1);
+    // netlist.get_cell_name()    
     int new_bits = lib_cell1.get_bits() + lib_cell2.get_bits();
     // Asummption: get first flip-flop in the list unit compare function finish
     // TODO: Pick the best flip-flop
@@ -71,6 +73,7 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
     cell1.set_y(new_cell_y);
     // change cell1 width and height
     const design::LibCell &new_lib_cell = design.get_lib_cell(new_lib_cell_id);
+    std::cout<<"new_lib_cell: "<<new_lib_cell.get_name()<<std::endl;
     cell1.set_w(new_lib_cell.get_width());
     cell1.set_h(new_lib_cell.get_height());
     
@@ -88,37 +91,52 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
     new_cell_input_pins_id.reserve(cell1_input_pins_id.size() + cell2_input_pins_id.size());
     new_cell_input_pins_id.insert(new_cell_input_pins_id.end(), cell1_input_pins_id.begin(), cell1_input_pins_id.end());   
     new_cell_input_pins_id.insert(new_cell_input_pins_id.end(), cell2_input_pins_id.begin(), cell2_input_pins_id.end());
+    std::cout<<"new_cell_input_pins_id check "<<new_cell_input_pins_id.size()<<std::endl;
     for(int i = 0; i < static_cast<int>(new_cell_input_pins_id.size()); i++){
         int pin_id = new_cell_input_pins_id.at(i);
         Pin &pin = get_mutable_pin(pin_id);
         // netlist.update_pin_name()
-        update_pin_name(pin_id, cell_name1 + "/" + new_lib_cell_input_pins_name.at(i));
+        const std::string &new_pin_name = cell_name1 + "/" + new_lib_cell_input_pins_name.at(i);
+        std::cout<<"new_pin_name: "<<new_pin_name<<std::endl;
+        update_pin_name(pin_id, new_pin_name);
         pin.set_offset_x(new_lib_cell_input_pins_position.at(i).first);
         pin.set_offset_y(new_lib_cell_input_pins_position.at(i).second);
         pin.set_x(new_cell_x + new_lib_cell_input_pins_position.at(i).first);
         pin.set_y(new_cell_y + new_lib_cell_input_pins_position.at(i).second);
         pin.set_cell_id(id1);
     }
+    std::cout<<"new_cell_input_pins_id: "<<new_cell_input_pins_id.size()<<std::endl;    
     // output
     std::vector<std::string> new_lib_cell_output_pins_name = new_lib_cell.get_output_pins_name();
     std::vector<std::pair<double, double>> new_lib_cell_output_pins_position = new_lib_cell.get_output_pins_position();
     std::vector<int> cell1_output_pins_id = cell1.get_output_pins_id();
-    std::vector<int> cell2_output_pins_id = cell2.get_output_pins_id();
+    std::vector<int> cell2_output_pins_id = cell2.get_output_pins_id();    
     std::vector<int> new_cell_output_pins_id;
     new_cell_output_pins_id.reserve(cell1_output_pins_id.size() + cell2_output_pins_id.size());
     new_cell_output_pins_id.insert(new_cell_output_pins_id.end(), cell1_output_pins_id.begin(), cell1_output_pins_id.end());
     new_cell_output_pins_id.insert(new_cell_output_pins_id.end(), cell2_output_pins_id.begin(), cell2_output_pins_id.end());
+    std::cout<<"new_cell_output_pins_id check "<<new_cell_output_pins_id.size()<<std::endl;
+    std::cout<<"cell1_output_pins_id check "<<cell1_output_pins_id.size()<<std::endl;
+    std::cout<<"cell2_output_pins_id check "<<cell2_output_pins_id.size()<<std::endl;
+    for(int pid : new_cell_output_pins_id){
+        std::string pin_name = get_pin_name(pid);
+        std::cout<<"new_cell_output_pins_id: "<<pin_name<<std::endl;
+    }
     for(int i = 0; i < static_cast<int>(new_cell_output_pins_id.size()); i++){
         int pin_id = new_cell_output_pins_id.at(i);
         Pin &pin = get_mutable_pin(pin_id);
         // netlist.update_pin_name()
-        update_pin_name(pin_id,  cell_name1 + "/" +new_lib_cell_output_pins_name.at(i));
+        const std::string &new_pin_name = cell_name1 + "/" + new_lib_cell_output_pins_name.at(i);
+        std::cout<<"new_pin_name: "<<new_pin_name<<std::endl;
+        update_pin_name(pin_id,  new_pin_name);        
         pin.set_offset_x(new_lib_cell_output_pins_position.at(i).first);
         pin.set_offset_y(new_lib_cell_output_pins_position.at(i).second);
         pin.set_x(new_cell_x + new_lib_cell_output_pins_position.at(i).first);
         pin.set_y(new_cell_y + new_lib_cell_output_pins_position.at(i).second);
         pin.set_cell_id(id1);
+        std::cout<<"new_pin_name: "<<new_pin_name<<" finish"<<std::endl;
     }
+    std::cout<<"new_cell_output_pins_id: "<<new_cell_output_pins_id.size()<<std::endl;
     // other
     std::vector<std::string> new_lib_cell_other_pins_name = new_lib_cell.get_other_pins_name();
     std::vector<std::pair<double, double>> new_lib_cell_other_pins_position = new_lib_cell.get_other_pins_position();
@@ -127,18 +145,23 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
     std::vector<int> new_cell_other_pins_id;
     new_cell_other_pins_id.reserve(cell1_other_pins_id.size() + cell2_other_pins_id.size());
     new_cell_other_pins_id.insert(new_cell_other_pins_id.end(), cell1_other_pins_id.begin(), cell1_other_pins_id.end());
-    new_cell_other_pins_id.insert(new_cell_other_pins_id.end(), cell2_other_pins_id.begin(), cell2_other_pins_id.end());   
+    new_cell_other_pins_id.insert(new_cell_other_pins_id.end(), cell2_other_pins_id.begin(), cell2_other_pins_id.end());
+    
+    const std::string &new_libcell_other_pin_name = new_lib_cell_other_pins_name.at(0);
+    const std::pair<double, double> &new_libcell_other_pin_position = new_lib_cell_other_pins_position.at(0);
+
     for(int i = 0; i < static_cast<int>(new_cell_other_pins_id.size()); i++){
         int pin_id = new_cell_other_pins_id.at(i);
         Pin &pin = get_mutable_pin(pin_id);
         // netlist.update_pin_name()
-        update_pin_name(pin_id,  cell_name1 + "/" + new_lib_cell_other_pins_name.at(i));
-        pin.set_offset_x(new_lib_cell_other_pins_position.at(i).first);
-        pin.set_offset_y(new_lib_cell_other_pins_position.at(i).second);
-        pin.set_x(new_cell_x + new_lib_cell_other_pins_position.at(i).first);
-        pin.set_y(new_cell_y + new_lib_cell_other_pins_position.at(i).second);
+        update_pin_name(pin_id,  cell_name1 + "/" + new_libcell_other_pin_name);
+        pin.set_offset_x(new_libcell_other_pin_position.first);
+        pin.set_offset_y(new_libcell_other_pin_position.second);
+        pin.set_x(new_cell_x + new_libcell_other_pin_position.first);
+        pin.set_y(new_cell_y + new_libcell_other_pin_position.second);
         pin.set_cell_id(id1);
     }
+    std::cout<<"new_cell_other_pins_id: "<<new_cell_other_pins_id.size()<<std::endl;
     // update cell1 pins
     cell1.set_input_pins_id(new_cell_input_pins_id);
     cell1.set_output_pins_id(new_cell_output_pins_id);

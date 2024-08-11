@@ -40,7 +40,7 @@ public:
     }
     void add_input_pin_id(int pin_id) { input_pins_id.push_back(pin_id); }
     void add_output_pin_id(int pin_id) { output_pins_id.push_back(pin_id); }
-    void add_other_pin_id(int pin_id) { output_pins_id.push_back(pin_id); }
+    void add_other_pin_id(int pin_id) { other_pins_id.push_back(pin_id); }
     void set_input_pins_id(const std::vector<int>& input_pins_id) { this->input_pins_id = input_pins_id; }
     void set_output_pins_id(const std::vector<int>& output_pins_id) { this->output_pins_id = output_pins_id; }
     void set_other_pins_id(const std::vector<int>& other_pins_id) { this->other_pins_id = other_pins_id; }
