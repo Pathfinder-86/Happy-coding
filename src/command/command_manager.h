@@ -19,8 +19,11 @@ namespace command {
         void read_input_data(const std::string& filename);        
         // Write
         void write_output_data(const std::string& filename);
+        void write_output_data_from_best_solution(const std::string& filename);
         void write_output_layout_data(const std::string& filename);
         void write_output_utilization_data(const std::string& filename);
+        // function
+        void test_cluster_ff();
     private:
         CommandManager() {}
         CommandManager(const CommandManager&) = delete;

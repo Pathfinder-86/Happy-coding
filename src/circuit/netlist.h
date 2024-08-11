@@ -9,6 +9,8 @@
 #include <cell.h>
 #include <net.h>
 #include <stdexcept>
+#include <unordered_set>
+
 namespace circuit {
 
 class Netlist {
@@ -93,6 +95,16 @@ public:
     const std::vector<Net>& get_nets() const {
         return nets;
     }
+    std::vector<Cell> &get_mutable_cells() {
+        return cells;
+    }
+    std::vector<Pin> &get_mutable_pins() {
+        return pins;
+    }
+    std::vector<Net> &get_mutable_nets() {
+        return nets;
+    }
+
     int get_cell_id(const std::string& name) const {
         if (cell_id_map.count(name) > 0) {
             return cell_id_map.at(name);
@@ -138,17 +150,61 @@ public:
     const std::vector<std::string>& get_cell_names() const {
         return cell_names;
     }
+    void update_pin_name(int id, const std::string& name) {
+        pin_names.at(id) = name;
+    }
     const std::vector<std::string>& get_pin_names() const {
         return pin_names;
     }
     const std::vector<std::string>& get_net_names() const {
         return net_names;
     }
-
+    //void cluster_cells(int id1, int id2);
+    // for mapping
+    void set_original_pin_names(){
+        original_pin_names = pin_names;
+    }
+    const std::vector<std::string>& get_original_pin_names() const {
+        return original_pin_names;
+    }
+    int cells_size() const { return cells.size(); }
+    int pins_size() const { return pins.size(); }
+    int nets_size() const { return nets.size(); }
+    // libcell mapping
+    void modify_circuit_since_merge_cell(int c1,int c2);
+    bool cluster_cells(int c1, int c2);
+    void best_libcell_index(const std::vector<int> &bit_lib_cells_id, int &good_index);
+    // sequential cells
+    void init_all_sequential_cells_id(){
+        sequential_cells_id.clear();
+        for(auto &cell: cells){
+            if(cell.is_sequential() && cell.get_parent() == -1){
+                sequential_cells_id.insert(cell.get_id());
+            }
+        }
+    }
+    bool is_sequential_cell(int cell_id){
+        return sequential_cells_id.find(cell_id) != sequential_cells_id.end();
+    }
+    const std::unordered_set<int>& get_sequential_cells_id() const {
+        return sequential_cells_id;
+    }
+    void remove_sequential_cell(int cell_id){
+        sequential_cells_id.erase(cell_id);
+    }
+    void add_sequential_cell(int cell_id){
+        sequential_cells_id.insert(cell_id);
+    }
+    // check
+    bool check_overlap();
+    bool check_out_of_die();
+    // print msg
+    void print_cell_info(const circuit::Cell &cell);
 private:
     std::vector<Cell> cells;
     std::vector<Net> nets;
     std::vector<Pin> pins;
+
     // name
     std::unordered_map<std::string, int> cell_id_map;
     std::unordered_map<std::string, int> net_id_map;
@@ -156,6 +212,9 @@ private:
     std::vector<std::string> cell_names;
     std::vector<std::string> net_names;
     std::vector<std::string> pin_names;
+    // for mapping
+    std::vector<std::string> original_pin_names;
+    std::unordered_set<int> sequential_cells_id;
 
 private:
     Netlist() {} // Private constructor to prevent instantiation

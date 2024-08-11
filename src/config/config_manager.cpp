@@ -86,8 +86,9 @@ void ConfigManager::init_config_value(){
     std::cout<<"init_config_value"<<std::endl;
     add_config("dump_tcl_setting", ConfigType::Bool, true );
     add_config("check_input_data", ConfigType::Bool, true );    
-    add_config("contest_mode", ConfigType::Bool, false);
-    add_config("plot_mode", ConfigType::Bool, true);
+    add_config("contest_mode", ConfigType::Bool,true);
+    add_config("plot_mode", ConfigType::Bool, false);
+    add_config("runtcl_mode", ConfigType::Bool, false);
 }
 
 void ConfigManager::add_config(const std::string &key, ConfigType type, const ConfigValue &value){

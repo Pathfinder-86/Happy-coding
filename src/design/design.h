@@ -17,13 +17,14 @@ struct CostFactor {
 
 struct Row {
     double x,y;
-    double width,height;    
+    double width,height;
+    double site_width;    
 };
 
 class Design {
 public:
     static Design& get_instance() {
-        static Design instance;
+        static Design instance;        
         return instance;
     }
     // cost funtcion
@@ -80,17 +81,15 @@ public:
     double get_bin_height() const {
         return bin_size.second;
     }
+    double get_bin_area() const {
+        return bin_size.first * bin_size.second;
+    }
     void set_bin_max_utilization(double utilization) {
         bin_max_utilization = utilization;
     }
     double get_bin_max_utilization() const {
         return bin_max_utilization;
-    }
-    void init_bins();
-    const std::vector<std::vector<Bin>>& get_bins() const {
-        return bins;
-    }
-    void update_bins_utilization();
+    }    
     // lib_cell
     void add_lib_cell(LibCell& lib_cell) {
         int id = lib_cells.size();
@@ -128,19 +127,25 @@ public:
             throw std::out_of_range("Invalid lib cell name");
         }
     }
-    void add_flipflop_id(int bits, int id){
+    void add_flipflop_id_to_bits_group(int bits, int id){
         bits_flipflop_id_map[bits].push_back(id);
     }
-    void add_row(double x, double y, double width, double height){
-        rows.push_back(Row{x,y,width,height});
+    std::vector<int> get_bit_flipflops_id(int bit) const {
+        if(!bits_flipflop_id_map.count(bit)){
+            return {};
+        }else {
+            return bits_flipflop_id_map.at(bit);
+        }
     }
-        
+
+    void add_row(double x, double y, double width, double height, double site_width){
+        rows.push_back(Row{x,y,width,height,site_width});
+    }
 private:    
     CostFactor cost_factor;
     std::vector<double> die_boundaries;
     std::pair<double, double> bin_size;
     double bin_max_utilization;
-    std::vector<std::vector<Bin>> bins;
     std::vector<LibCell> lib_cells;
     std::unordered_map<int,std::vector<int>> bits_flipflop_id_map;
     std::unordered_map<std::string, int> lib_cells_id_map;
