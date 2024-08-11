@@ -62,4 +62,14 @@ void Cell::calculate_slack(){
     set_slack(worst_slack);
 }
 
+bool Cell::overlap(const Cell &cell) const {
+    if(cell.get_rx() <= x || cell.get_x() >= get_rx()){
+        return false;
+    }
+    if(cell.get_ry() <= y || cell.get_y() >= get_ry()){
+        return false;
+    }
+    return true;
+
+}
 }

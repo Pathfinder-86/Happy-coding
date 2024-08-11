@@ -11,7 +11,7 @@ void Timer::init_timing(const std::unordered_map<int,double> &init_pin_slack_map
 
     // D pin use edges propagate to D pin first
     for(auto& [id,slack] : init_pin_slack_map){
-        std::cout << "id: " << id << " slack: " << slack << std::endl;
+        //std::cout << "id: " << id << " slack: " << slack << std::endl;
         timing_nodes[id].set_slack(slack);
         visited.insert(id);
         Queue.push(id);
@@ -23,11 +23,11 @@ void Timer::init_timing(const std::unordered_map<int,double> &init_pin_slack_map
         int size = Queue.size();
         for(int i=0;i<size;i++){
             int node_id = Queue.front();
-            std::cout<<"node_id: "<<node_id<<std::endl;
+            //std::cout<<"node_id: "<<node_id<<std::endl;
             Queue.pop();
             if(timing_graph.find(node_id) == timing_graph.end()){
                 const std::string &pin_name = netlist.get_pin_name(node_id);
-                std::cout<<"no node_id:"<<node_id<<" name:"<<pin_name<<" in timing_graph"<<std::endl;                
+                //std::cout<<"no node_id:"<<node_id<<" name:"<<pin_name<<" in timing_graph"<<std::endl;                
                 continue;
             }
 
@@ -36,7 +36,7 @@ void Timer::init_timing(const std::unordered_map<int,double> &init_pin_slack_map
                 double delay = timing_edges.at(node_id).at(sink_id).get_delay();
                 //std::cout<<"get driver slack"<<std::endl;
                 double new_slack = timing_nodes.at(node_id).get_slack() + delay;                                
-                std::cout<<"get sink slack:"<<new_slack<<std::endl;
+                //std::cout<<"get sink slack:"<<new_slack<<std::endl;
                 double origin_slack = timing_nodes.at(sink_id).get_slack();
                 double max_slack = std::max(origin_slack,new_slack);
                 if(max_slack != origin_slack){                    
@@ -63,14 +63,14 @@ void Timer::add_net_into_timing_graph(const circuit::Net& net){
     const std::string &net_name = netlist.get_net_name(net_id);
     if(driver_pin_id == -1){
         // no driver pin :O
-        std::cout<<"no driver pin in net:"<<net_name<<std::endl;
+        //std::cout<<"no driver pin in net:"<<net_name<<std::endl;
         return;
     }   
 
     double displacement_delay = design.get_displacement_delay();    
     const circuit::Pin& driver_pin = netlist.get_pin(driver_pin_id);
     const std::string &driver_pin_name = netlist.get_pin_name(driver_pin_id);
-    std::cout<<"driver_pin_id: "<<driver_pin_id<<" driver_pin_name: "<<driver_pin_name<<std::endl;
+    //std::cout<<"driver_pin_id: "<<driver_pin_id<<" driver_pin_name: "<<driver_pin_name<<std::endl;
 
     for(int pin_id : net.get_pins_id()){
         TimingNode node(pin_id);        
@@ -90,7 +90,7 @@ void Timer::add_net_into_timing_graph(const circuit::Net& net){
         timing_edges[driver_pin_id][pin_id] = edge;
 
         // debug
-        std::cout<<driver_pin_id<<" -> "<<pin_id<<" delay:"<<delay<<std::endl;
+        //std::cout<<driver_pin_id<<" -> "<<pin_id<<" delay:"<<delay<<std::endl;
     }
 
     // no propagation all slack are wrong here

@@ -381,9 +381,9 @@ void CommandManager::read_input_data(const std::string &filename) {
         cell.calculate_slack();
     }
     // check slack
-    for(const auto &cell : netlist.get_cells()){
-        std::cout<<cell.get_slack()<<std::endl;
-    }
+    //for(const auto &cell : netlist.get_cells()){
+    //    std::cout<<cell.get_slack()<<std::endl;
+    //}
 
     // calculate init 
     estimator::CostCalculator cost_calculator;
@@ -399,6 +399,9 @@ void CommandManager::read_input_data(const std::string &filename) {
     if(std::get<bool>(config.get_config_value("check_input_data")) == true){
         check_input_data();
     }
+    bool is_overlap = netlist.check_overlap();
+    bool is_out_of_die = netlist.check_out_of_die();
+    std::cout<<"overlap:"<<is_overlap<<" out of die:"<<is_out_of_die<<std::endl;
 }
 
 

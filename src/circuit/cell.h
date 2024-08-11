@@ -77,7 +77,9 @@ public:
         h = 0;
         lib_cell_id = -1;   
         slack = 0.0;                
-    }    
+    }
+    // overlap 
+    bool overlap(const Cell& cell) const;    
 };
 }
 #endif // CELL_H

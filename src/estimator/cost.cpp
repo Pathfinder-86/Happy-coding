@@ -21,10 +21,10 @@ void CostCalculator::calculate_cost(){
         area_cost += area_factor * cell.get_area();
         power_cost += power_factor * cell.get_power();
         timing_cost += timing_factor * cell.get_slack();
-        std::cout<<"cell: "<<cell_name<<std::endl;
-        std::cout<<"area: "<<cell.get_area()<<" "<<cell.get_area() * area_factor<<std::endl;
-        std::cout<<"power: "<<cell.get_power()<<" "<<cell.get_power() * power_factor<<std::endl;
-        std::cout<<"slack: "<<cell.get_slack()<<" "<<cell.get_slack() * timing_factor<<std::endl;
+        //std::cout<<"cell: "<<cell_name<<std::endl;
+        //std::cout<<"area: "<<cell.get_area()<<" "<<cell.get_area() * area_factor<<std::endl;
+        //std::cout<<"power: "<<cell.get_power()<<" "<<cell.get_power() * power_factor<<std::endl;
+        //std::cout<<"slack: "<<cell.get_slack()<<" "<<cell.get_slack() * timing_factor<<std::endl;
     }
     // TODO:  add utilization cost
     const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();

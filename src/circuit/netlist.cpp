@@ -171,4 +171,53 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
     timer::Timer &timer = timer::Timer::get_instance();
     timer.set_dirty(true);
 }
+
+bool Netlist::check_overlap(){
+    for(int i = 0; i < static_cast<int>(cells.size()); i++){
+        if(cells.at(i).get_parent() != -1){
+                continue;
+        }
+
+        for(int j = i + 1; j < static_cast<int>(cells.size()); j++){
+            if(cells.at(j).get_parent() != -1){
+                continue;
+            }
+            if(cells.at(i).overlap(cells.at(j))){
+                return true;
+            }
+        }
+    }
+}
+
+bool Netlist::check_out_of_die(){
+    const design::Design &design = design::Design::get_instance();
+    std::vector<double> die_boundaries = design.get_die_boundaries();
+    std::cout<<"die_boundaries: ";
+    for(double boundary: die_boundaries){
+        std::cout<<boundary<<" ";
+    }
+    std::cout<<std::endl;
+
+    for(auto &cell: cells){
+        if(cell.get_parent() != -1){
+            continue;
+        }
+        if(cell.get_x() < die_boundaries.at(0) || cell.get_rx() > die_boundaries.at(2)){
+            print_cell_info(cell);
+            return true;
+        }
+        if(cell.get_y() < die_boundaries.at(1) || cell.get_ry() > die_boundaries.at(3)){
+            print_cell_info(cell);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Netlist::print_cell_info(const Cell &cell){
+    const design::Design &design = design::Design::get_instance();
+    const design::LibCell &lib_cell = design.get_lib_cell(cell.get_lib_cell_id());
+    std::cout<<"Cell: "<<get_cell_name(cell.get_id())<<" LibCell: "<<lib_cell.get_name()<<" x: "<<cell.get_x()<<" y: "<<cell.get_y()<<" rx: "<<cell.get_rx()<<" ry: "<<cell.get_ry()<<std::endl;
+
+}
 } // namespace circuit

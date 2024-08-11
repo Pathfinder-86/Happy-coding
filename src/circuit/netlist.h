@@ -195,6 +195,11 @@ public:
     void add_sequential_cell(int cell_id){
         sequential_cells_id.insert(cell_id);
     }
+    // check
+    bool check_overlap();
+    bool check_out_of_die();
+    // print msg
+    void print_cell_info(const circuit::Cell &cell);
 private:
     std::vector<Cell> cells;
     std::vector<Net> nets;
