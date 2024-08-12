@@ -15,12 +15,6 @@ struct CostFactor {
     double displacement_delay = 0.0;
 };
 
-struct Row {
-    double x,y;
-    double width,height;
-    double site_width;    
-};
-
 class Design {
 public:
     static Design& get_instance() {
@@ -137,10 +131,6 @@ public:
             return bits_flipflop_id_map.at(bit);
         }
     }
-
-    void add_row(double x, double y, double width, double height, double site_width){
-        rows.push_back(Row{x,y,width,height,site_width});
-    }
 private:    
     CostFactor cost_factor;
     std::vector<double> die_boundaries;
@@ -149,7 +139,6 @@ private:
     std::vector<LibCell> lib_cells;
     std::unordered_map<int,std::vector<int>> bits_flipflop_id_map;
     std::unordered_map<std::string, int> lib_cells_id_map;
-    std::vector<Row> rows;
 private:
     Design() {} // Private constructor to prevent instantiation
     Design(const Design&) = delete; // Delete copy constructor

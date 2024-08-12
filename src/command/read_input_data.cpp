@@ -14,6 +14,7 @@
 #include "../estimator/solution.h"
 #include "../estimator/cost.h"
 #include "../legalizer/utilization.h"
+#include "../legalizer/legalizer.h"
 namespace command{
 
 void check_input_data(){
@@ -47,7 +48,7 @@ void CommandManager::read_input_data(const std::string &filename) {
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     design::Design &design = design::Design::get_instance();
     timer::Timer &timer = timer::Timer::get_instance();
-    
+    legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Cannot open file " + filename);
@@ -317,12 +318,11 @@ void CommandManager::read_input_data(const std::string &filename) {
             design.set_bin_max_utilization(bin_max_utilization / 100. );
             legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
         }else if(token == "PlacementRows"){
-            double x = 0.0, y = 0.0;
-            double site_width = 0.0, site_height = 0.0;
-            int site_num = 0;
+            double x,y,site_width,site_height;
+            int site_num;
             ss >> x >> y >> site_width >> site_height >> site_num;
-            double width = site_width * site_num;
-            design.add_row(x,y,width,site_height,site_width);
+            //std::cout << "Row " << x << "," << y << " " << site_width << "x" << site_height << " " << site_num << std::endl;
+            legalizer.add_row((int)x,(int)y,(int)site_width,(int)site_height,site_num);
         }else if(token == "DisplacementDelay"){
             double delay = 0.0;
             ss >> delay;
@@ -384,13 +384,21 @@ void CommandManager::read_input_data(const std::string &filename) {
     //for(const auto &cell : netlist.get_cells()){
     //    std::cout<<cell.get_slack()<<std::endl;
     //}
+    
+    legalizer.init();
+    if(legalizer.check_on_site()){
+        std::cout<<"LEGAL: All cells are on site"<<std::endl;
+    }else{
+        std::cout<<"LEGAL: Some cells are not on site"<<std::endl;
+    }
 
     // calculate init 
     estimator::CostCalculator cost_calculator;
     cost_calculator.calculate_cost();    
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
     solution_manager.keep_init_solution(cost_calculator.get_cost());    
-    std::cout<<"init total cost:"<<cost_calculator.get_cost()<<" timing cost:"<<cost_calculator.get_timing_cost()
+    
+    std::cout<<"INIT: "<<" FF_num:"<< netlist.get_sequential_cells_num() <<" "<<cost_calculator.get_cost()<<" timing cost:"<<cost_calculator.get_timing_cost()
     <<" power cost:"<<cost_calculator.get_power_cost()<<" area cost:"<<cost_calculator.get_area_cost()<<" utilization cost"<<cost_calculator.get_utilization_cost()<<std::endl;
 
     std::cout<<"Test get_init_cost:"<<solution_manager.get_init_cost()<<std::endl;
