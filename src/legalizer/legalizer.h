@@ -55,9 +55,7 @@ class Legalizer{
             //rows.push_back(Row{x,y,site_width*site_num,site_height});
             for(int i = 0; i < site_num; i++){
                 sites.push_back(Site(x + i*site_width, y, site_width, site_height));
-                //std::cout << "Site " << x + i*site_width << "," << y << std::endl;
-                on_sites_set.insert(std::make_pair(x + i*site_width, y));
-                site_id_map[std::make_pair(x + i*site_width, y)] = sites.size()-1;
+                //std::cout << "Site " << x + i*site_width << "," << y << std::endl;                
             }
 
             if(site_height == -1){
@@ -73,7 +71,7 @@ class Legalizer{
         void init(){
             init_blockage();
             init_sites = sites;
-            find_unplaced_cells_and_empty_sites();
+            place_available_cells_on_empty_sites();
             //init_rows = rows;
             print_empty_sites();
         }
@@ -84,12 +82,22 @@ class Legalizer{
         bool check_on_site();
         bool legalize();
         void init_blockage();
-        void find_unplaced_cells_and_empty_sites();
-        void print_empty_sites() const;
+        void place_available_cells_on_empty_sites();
+        void move_unavailable_cells_to_empty_sites();
+        void print_empty_sites() const;        
+        int nearest_empty_site(int x, int y) const;
+        std::vector<int> nearest_empty_site_enough_space(int x, int y, int rx, int ry);
+        std::vector<int> empty_sites_enough_space(int x, int y, int rx, int ry);
+        bool extend_at_site_id(std::vector<int> &sites_id,int x_site_num,int y_site_num);
+        bool legalize_success() const{
+            return not_on_site_cells_id.empty();
+        }
+        std::vector<int> distance_order_empty_sites(int x, int y);
+        bool try_extend_at_multiple_sites_id(const std::vector<int> &empty_sites_id,int x_site_num,int y_site_num,std::vector<int> &ret_sites_id);
     private:   
         //std::vector<Row> rows;
         //std::vector<Row> init_rows;
-        
+
         std::vector<Site> init_sites;
         // quick site access, check
         std::vector<Site> sites;   
@@ -100,7 +108,7 @@ class Legalizer{
         // site cell relation
         std::unordered_set<int> not_on_site_cells_id;
         std::unordered_map<int,int> site_id_to_cell_id_map;
-        std::unordered_map<int,int> cell_id_to_site_id_map;
+        std::unordered_map<int,std::unordered_set<int>> cell_id_to_site_id_map;
 
         int site_width, site_height;
         bool available;
