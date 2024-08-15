@@ -196,14 +196,16 @@ void CommandManager::read_input_data(const std::string &filename) {
                     // set pin connection type
                     // 0: input, 1: output, 2: clk,other
                     if(lib_cell.is_sequential() == true){
+                        pin.set_ff_pin(true);                      
                         if(pins_name.at(j).at(0) == 'D'){                    
-                            pin.set_pin_connection_type(0);
+                            pin.set_pin_connection_type(0);                            
                         }else if(pins_name.at(j).at(0) == 'Q'){
-                            pin.set_pin_connection_type(1);
+                            pin.set_pin_connection_type(1);                            
                         }else{
-                            pin.set_pin_connection_type(2);
+                            pin.set_pin_connection_type(2);                            
                         }
                     }else{
+                        pin.set_ff_pin(false);
                         if(pins_name.at(j).at(0) == 'I'){ // IN              
                             pin.set_pin_connection_type(0);
                         }else if(pins_name.at(j).at(0) == 'O'){ // OUT
@@ -225,7 +227,6 @@ void CommandManager::read_input_data(const std::string &filename) {
                         cell.add_other_pin_id(pid);
                     }
                 }
-                //std::cout<<"add pins finish"<<std::endl;
 
                 netlist.add_cell(cell,name);
                 // set cell_id on pin
@@ -256,47 +257,6 @@ void CommandManager::read_input_data(const std::string &filename) {
                     int pin_id = netlist.get_pin_id(pin_name);
                     net.add_pin_id(pin_id);                    
                 }
-    
-                // determine net type
-                // if drive of net is FF, all pins of net are slack related --> net_slack_type = 0
-                // if sink of net is FF, dirver of net is slack related --> net_slack_type = 1
-                // if no FF in both source and sinks, all pins of net are not slack related --> net_slack_type = 2
-                int net_slack_type = 2;
-                for(int j = 0; j < pin_num ; j++){
-                    // first index is driver of net
-                    int pin_id = net.get_pins_id().at(j);
-                    circuit::Pin &pin = netlist.get_mutable_pin(pin_id);
-                    if(pin.is_port() == true){
-                        continue;
-                    }
-
-                    int cell_id = pin.get_cell_id();
-                    const circuit::Cell &cell = netlist.get_cell(cell_id);
-                    int lib_cell_id = cell.get_lib_cell_id();
-                    const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
-                                        
-                    if(lib_cell.is_sequential() == true){
-                        if(j==0){ // driver of net
-                            net_slack_type = 0;
-                            break;
-                        }
-                        // sink of net
-                        pin.set_slack_related(true);
-                        net_slack_type = 1;
-                    }                    
-                }
-
-                if(net_slack_type == 0){
-                    for(int j = 0; j < pin_num ; j++){
-                        circuit::Pin &pin = netlist.get_mutable_pin(net.get_pins_id().at(j));
-                        pin.set_slack_related(true);
-                    }
-                }else if(net_slack_type == 1){
-                    circuit::Pin &pin = netlist.get_mutable_pin(net.get_pins_id().at(0));
-                    pin.set_slack_related(true);
-                }
-                
-                net.set_net_slack_type(net_slack_type);
 
                 // add net to netlist                
                 netlist.add_net(net,name);
@@ -336,9 +296,9 @@ void CommandManager::read_input_data(const std::string &filename) {
             std::string cell_name, pin_name;
             double slack = 0.0;
             ss >> cell_name >> pin_name >> slack;
-            int pin_id = netlist.get_pin_id(cell_name + "/" + pin_name);
-            // TODO: add slack to timing graph
-            init_pin_slack_map[pin_id] = slack;            
+            int pin_id = netlist.get_pin_id(cell_name + "/" + pin_name);            
+            init_pin_slack_map[pin_id] = slack;
+
         }else if(token == "GatePower"){
             std::string lib_cell_name;
             double power = 0.0;
@@ -352,26 +312,7 @@ void CommandManager::read_input_data(const std::string &filename) {
     legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
     utilization_calculator.update_bins_utilization();
 
-    // add nets to timing graph 
-    std::cout<<"add nets to timing graph"<<std::endl;
-    for(const auto &net : netlist.get_nets()){                
-        int driver_pin_id = net.get_driver_pin_id();
-        const circuit::Pin &driver_pin = netlist.get_pin(driver_pin_id);
-        if(driver_pin.is_other() == true){
-            const std::string &pin_name = netlist.get_pin_name(driver_pin_id);
-            //std::cout<<"skip net "<<pin_name<<std::endl;
-            continue;
-        }
-        int net_id = net.get_id();
-        const std::string &net_name = netlist.get_net_name(net_id);
-        //std::cout<<"add net "<<net_name<<std::endl;
-
-        timer.add_net_into_timing_graph(net);
-    }
-    // add cells (qPin delay) to timing graph
-    for(const auto &cell : netlist.get_cells()){        
-        timer.add_cell_delay_into_timing_graph(cell);
-    }
+    
 
     // init timing
     std::cout<<"init timing"<<std::endl;
@@ -380,10 +321,10 @@ void CommandManager::read_input_data(const std::string &filename) {
     for(auto &cell : netlist.get_mutable_cells()){
         cell.calculate_slack();
     }
-    // check slack
-    //for(const auto &cell : netlist.get_cells()){
-    //    std::cout<<cell.get_slack()<<std::endl;
-    //}
+    // create timing nodes and connection
+    std::cout<<"TIMER:: create_timing_graph"<<std::endl;
+    timer.create_timing_graph();
+    
     
     legalizer.init();
     if(legalizer.check_on_site()){

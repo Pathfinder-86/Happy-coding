@@ -168,8 +168,12 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
     cell1.set_other_pins_id(new_cell_other_pins_id);
     // clear cell2 pins
     cell2.clear();
+
+
+    // update timing information
+    // cell1 q_pin_delay change
     timer::Timer &timer = timer::Timer::get_instance();
-    timer.set_dirty(true);
+    timer.update_timing(id1);
 }
 
 bool Netlist::check_overlap(){
