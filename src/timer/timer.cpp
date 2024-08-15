@@ -27,7 +27,7 @@ void TimingNode::update_slack_since_cell_move(){
 }
 
 void TimingNode::cell_move_update_affected_d_pin_slack(){
-    std::cout<<"DEBUG cell: "<<get_pin_id()<<" cell_move_update_affected_d_pin_slack"<<std::endl;
+    //std::cout<<"DEBUG cell: "<<get_pin_id()<<" cell_move_update_affected_d_pin_slack"<<std::endl;
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const design::Design &design = design::Design::get_instance();
     timer::Timer &timer = timer::Timer::get_instance();
@@ -80,14 +80,14 @@ void Timer:: dfs_from_q_pin_to_each_d_pin(int q_pin_id){
 
     // debug
     const std::string &cell_name = netlist.get_cell_name(cell_id);
-    std::cout<<"DEBUG cell: "<<cell_name<<" q_pin: "<<netlist.get_pin_name(q_pin_id)<<" dfs find dpin path"<<std::endl;
+    //std::cout<<"DEBUG cell: "<<cell_name<<" q_pin: "<<netlist.get_pin_name(q_pin_id)<<" dfs find dpin path"<<std::endl;
 
     // Traverse netlist from q_pin_output_pin
     int net_id = q_pin.get_net_id();
     const circuit::Net &net = netlist.get_net(net_id);
 
     const std::string &net_name = netlist.get_net_name(net_id);
-    std::cout<<"DEBUG net: "<<net_name<<" dfs find dpin path"<<std::endl;
+    //std::cout<<"DEBUG net: "<<net_name<<" dfs find dpin path"<<std::endl;
 
     timing_nodes.insert(std::make_pair(q_pin_id, TimingNode(q_pin_id,0.0)));
     visited.insert(q_pin_id);
@@ -100,10 +100,10 @@ void Timer:: dfs_from_q_pin_to_each_d_pin(int q_pin_id){
         // q_pin_output_pin
         const circuit::Pin &pin = netlist.get_pin(pin_id);
         if(pin.is_port()){
-            std::cout<<"DEBUG port: "<<netlist.get_pin_name(pin_id)<<" dfs find dpin path"<<std::endl;
+            //std::cout<<"DEBUG port: "<<netlist.get_pin_name(pin_id)<<" dfs find dpin path"<<std::endl;
             continue;
         }else{
-            std::cout<<"DEBUG cell: "<<cell_name<<" net: "<<net_name<<" pin: "<<netlist.get_pin_name(pin_id)<<" dfs find dpin path"<<std::endl;
+            //std::cout<<"DEBUG cell: "<<cell_name<<" net: "<<net_name<<" pin: "<<netlist.get_pin_name(pin_id)<<" dfs find dpin path"<<std::endl;
         }
 
         std::pair<int,int> q_pin_output_pin_location = std::make_pair(pin.get_x(),pin.get_y());
@@ -124,14 +124,14 @@ int Timer::dfs_until_d_pin(int fanin_pid,int pid,const std::pair<int,int> &q_pin
     // DEBUG
     const std::string &pin_name = netlist.get_pin_name(pid);
     const std::string &fanin_pin_name = netlist.get_pin_name(fanin_pid);
-    std::cout<<"DEBUG fanin: "<<fanin_pin_name<<" pin: "<<pin_name<<" dfs find dpin path"<<std::endl;
+    //std::cout<<"DEBUG fanin: "<<fanin_pin_name<<" pin: "<<pin_name<<" dfs find dpin path"<<std::endl;
     if(pin.is_port()){
-        std::cout<<"DEBUG port: "<<pin_name<<" dfs find dpin path"<<std::endl;
+        //std::cout<<"DEBUG port: "<<pin_name<<" dfs find dpin path"<<std::endl;
         return -1;
     }
     
     if(pin.is_d_pin()){
-        std::cout<<"DEBUG d_pin: "<<pin_name<<" dfs find dpin path"<<std::endl;
+        //std::cout<<"DEBUG d_pin: "<<pin_name<<" dfs find dpin path"<<std::endl;
         timing_nodes[pid].set_q_pin_output_pin_location(q_pin_output_pin_location);
         timing_nodes[pid].set_q_pin_output_pin_placement_delay(q_pin_output_pin_placement_delay);
         const circuit::Pin &d_pin_input_pin = netlist.get_pin(fanin_pid);        
@@ -163,6 +163,52 @@ int Timer::dfs_until_d_pin(int fanin_pid,int pid,const std::pair<int,int> &q_pin
     return -1;
 }
 
+int Timer::dfs_until_d_pin_stack(int start_q_pin_id,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay, const double q_pin_delay){
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    const circuit::Pin &pin = netlist.get_pin(start_q_pin_id);
+    // DEBUG
+    // const std::string &pin_name = netlist.get_pin_name(pid);
+    // const std::string &fanin_pin_name = netlist.get_pin_name(fanin_pid);
+    //std::cout<<"DEBUG fanin: "<<fanin_pin_name<<" pin: "<<pin_name<<" dfs find dpin path"<<std::endl;
+    if(pin.is_port()){
+        //std::cout<<"DEBUG port: "<<pin_name<<" dfs find dpin path"<<std::endl;
+        return -1;
+    }
+    std::stack<int> 
+    if(pin.is_d_pin()){
+        //std::cout<<"DEBUG d_pin: "<<pin_name<<" dfs find dpin path"<<std::endl;
+        timing_nodes[pid].set_q_pin_output_pin_location(q_pin_output_pin_location);
+        timing_nodes[pid].set_q_pin_output_pin_placement_delay(q_pin_output_pin_placement_delay);
+        const circuit::Pin &d_pin_input_pin = netlist.get_pin(fanin_pid);        
+        const design::Design &design = design::Design::get_instance();
+        double displacement_delay_factor = design.get_displacement_delay();
+        double input_pin_d_pin_placement_delay = displacement_delay_factor * (abs(d_pin_input_pin.get_x() - pin.get_x()) + abs(d_pin_input_pin.get_y() - pin.get_y()));
+        timing_nodes[pid].set_input_pin_d_pin_placement_delay(input_pin_d_pin_placement_delay);        
+        timing_nodes[pid].set_d_pin_input_pin_location(std::make_pair(d_pin_input_pin.get_x(),d_pin_input_pin.get_y()));
+        timing_nodes[pid].set_q_pin_delay(q_pin_delay);
+        return pid;
+    }
+
+    // get outputs pin from input pin
+    int cell_id = pin.get_cell_id();
+    const circuit::Cell &cell = netlist.get_cell(cell_id);
+    for(int output_pin_id : cell.get_output_pins_id()){
+        const circuit::Pin &output_pin = netlist.get_pin(output_pin_id);
+        int output_net_id = output_pin.get_net_id();
+        const circuit::Net &output_net = netlist.get_net(output_net_id);
+        visited.insert(output_pin_id);
+
+        for(int next_input_pin_id : output_net.get_pins_id()){
+            if(next_input_pin_id == output_pin_id){
+                continue;
+            }
+            dfs_until_d_pin(output_pin_id,next_input_pin_id,q_pin_output_pin_location,q_pin_output_pin_placement_delay,q_pin_delay);
+        }
+    }
+    return -1;
+}
+
+
 void Timer::create_timing_graph(){
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const std::vector<circuit::Cell> &cells = netlist.get_cells();
@@ -171,28 +217,29 @@ void Timer::create_timing_graph(){
         const circuit::Cell &cell = cells.at(cell_id);
         for(int q_pin_id : cell.get_output_pins_id()){
             const std::string &q_pin_name = netlist.get_pin_name(q_pin_id);
-            std::cout<<"q_pin: "<<q_pin_name<<" dfs find dpin path"<<std::endl;
+            //std::cout<<"q_pin: "<<q_pin_name<<" dfs find dpin path"<<std::endl;            
             dfs_from_q_pin_to_each_d_pin(q_pin_id);
+            std::cout<<"DEBUG Finish "<<q_pin_name<<std::endl;
         }
     }
 }
 
 void Timer::update_slack_since_cell_move(int cell_id){
-    std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_cell_move"<<std::endl;
+    //std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_cell_move"<<std::endl;
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const circuit::Cell &cell = netlist.get_cell(cell_id);
     for(int d_pin_id : cell.get_input_pins_id()){
-        std::cout<<"DEBUG cell: "<<cell_id<<" d_pin: "<<netlist.get_pin_name(d_pin_id)<<" update_slack_since_cell_move"<<std::endl;
+        //std::cout<<"DEBUG cell: "<<cell_id<<" d_pin: "<<netlist.get_pin_name(d_pin_id)<<" update_slack_since_cell_move"<<std::endl;
         if(timing_nodes.find(d_pin_id) == timing_nodes.end()){
-            std::cout<<"DEBUG cell: "<<cell_id<<" d_pin_id: "<<d_pin_id<<" not found"<<std::endl;
+            //std::cout<<"DEBUG cell: "<<cell_id<<" d_pin_id: "<<d_pin_id<<" not found"<<std::endl;
             continue;
         }
         timing_nodes.at(d_pin_id).update_slack_since_cell_move();
     }
     for(int q_pin_id : cell.get_output_pins_id()){
-        std::cout<<"DEBUG cell: "<<cell_id<<" q_pin: "<<netlist.get_pin_name(q_pin_id)<<" cell_move_update_affected_d_pin_slack"<<std::endl;
+        //std::cout<<"DEBUG cell: "<<cell_id<<" q_pin: "<<netlist.get_pin_name(q_pin_id)<<" cell_move_update_affected_d_pin_slack"<<std::endl;
         if(timing_nodes.find(q_pin_id) == timing_nodes.end()){
-            std::cout<<"DEBUG cell: "<<cell_id<<" q_pin_id: "<<q_pin_id<<" not found"<<std::endl;
+            //std::cout<<"DEBUG cell: "<<cell_id<<" q_pin_id: "<<q_pin_id<<" not found"<<std::endl;
             continue;
         }
         timing_nodes.at(q_pin_id).cell_move_update_affected_d_pin_slack();        
@@ -200,7 +247,7 @@ void Timer::update_slack_since_cell_move(int cell_id){
 }
 
 void Timer::update_slack_since_libcell_change(int cell_id){
-    std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_libcell_change"<<std::endl;
+    //std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_libcell_change"<<std::endl;
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const circuit::Cell &cell = netlist.get_cell(cell_id);
     const design::Design &design = design::Design::get_instance();
@@ -208,7 +255,7 @@ void Timer::update_slack_since_libcell_change(int cell_id){
     const design::LibCell &libcell = design.get_lib_cell(libcell_id);
     double q_pin_delay = libcell.get_delay();    
     for(int q_pin_id : cell.get_output_pins_id()){
-        std::cout<<"DEBUG cell: "<<cell_id<<" q_pin: "<<netlist.get_pin_name(q_pin_id)<<" libcell_change_update_affected_d_pin_slack"<<std::endl;
+        //std::cout<<"DEBUG cell: "<<cell_id<<" q_pin: "<<netlist.get_pin_name(q_pin_id)<<" libcell_change_update_affected_d_pin_slack"<<std::endl;
         timing_nodes[q_pin_id].libcell_change_update_affected_d_pin_slack(q_pin_delay);
     }
 }
@@ -216,7 +263,7 @@ void Timer::update_slack_since_libcell_change(int cell_id){
 void Timer::update_timing(int cell_id){
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const std::string &cell_name = netlist.get_cell_name(cell_id);    
-    std::cout<<"DEBUG cell: "<<cell_name<<" id:"<<cell_id<<" update timing"<<std::endl;
+    //std::cout<<"DEBUG cell: "<<cell_name<<" id:"<<cell_id<<" update timing"<<std::endl;
 
     update_slack_since_cell_move(cell_id);
     update_slack_since_libcell_change(cell_id);
