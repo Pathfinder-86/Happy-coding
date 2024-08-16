@@ -115,6 +115,11 @@ void Legalizer::init_blockage(){
     }
     sites = new_sites;
     sort_sites_by_y_then_x();
+    // adjust site_id since some sites are removed
+    for(int i=0;i<sites.size();i++){
+        sites.at(i).set_id(i);
+    }
+
     for(const auto &it : sites){        
         empty_sites_id.insert(it.get_id());
         sites_id_to_xy_map[it.get_id()] = std::make_pair(it.get_x(),it.get_y());
@@ -139,15 +144,15 @@ void Legalizer::sort_sites_by_y_then_x(){
 
 int Legalizer::nearest_empty_site(int x, int y) const{
     auto it = sites_xy_to_id_map.find(std::make_pair(x,y));
-    if(it != sites_xy_to_id_map.end() && empty_sites_id.find(it->second) != empty_sites_id.end()){
+    if(it != sites_xy_to_id_map.end() && empty_sites_id.count(it->second)){
         return it->second;
     }
-    
-    
+        
     int min_dist = INT_MAX;
     int nearest_site_id = -1;
 
     for(int site_id : empty_sites_id){
+        std::cout<<"LEGAL:: empty_sites_id site_id "<<site_id<<std::endl;
         const Site &site = sites.at(site_id);
         int sx = site.get_x();
         int sy = site.get_y();
@@ -157,6 +162,7 @@ int Legalizer::nearest_empty_site(int x, int y) const{
             nearest_site_id = site_id;
         }
     }
+    std::cout<<"LEGAL:: nearest_empty_site nearest_site_id "<<nearest_site_id<<std::endl;    
     return nearest_site_id;
 }
 
@@ -197,23 +203,27 @@ std::vector<int> Legalizer::empty_sites_enough_space(int x, int y, int rx, int r
         return empty_sites_sort_by_distance;
     }
 
-    int x_site_num = (rx - x) / site_width;
-    int y_site_num = (ry - y) / site_height;
+    int x_site_num = (rx - x) / get_site_width();
+    int y_site_num = (ry - y) / get_site_height();
     std::vector<int> ret_sites_id;
     ret_sites_id.reserve(x_site_num * y_site_num);
     return try_extend_at_multiple_sites_id(empty_sites_sort_by_distance,x_site_num,y_site_num,ret_sites_id)?  ret_sites_id : std::vector<int>();
 }
 
 std::vector<int> Legalizer::nearest_empty_site_enough_space(int x, int y, int rx, int ry){
+    std::cout<<"LEGAL:: nearest_empty_site_enough_space START"<<std::endl;
     int nearest_site_id = nearest_empty_site(x,y);
+    std::cout<<"LEGAL:: nearest_empty_site_enough_space nearest_site_id "<<nearest_site_id<<std::endl;
     if(nearest_site_id == -1){
         return {};
     }
-    int x_site_num = (rx - x) / site_width;
-    int y_site_num = (ry - y) / site_height;
+    std::cout<<"LEGAL:: x "<<x<<" y "<<y<<" rx "<<rx<<" ry "<<ry<<std::endl;
+    int x_site_num = (rx - x) / get_site_width();
+    int y_site_num = (ry - y) / get_site_height();
+    std::cout<<"LEGAL:: x_site_num "<<x_site_num<<" y_site_num "<<y_site_num<<std::endl;
     std::vector<int> sites_id;
     sites_id.reserve(x_site_num * y_site_num);  
-    return extend_at_site_id(sites_id,x_site_num,y_site_num) ? sites_id : std::vector<int>();
+    return extend_at_site_id(nearest_site_id,sites_id,x_site_num,y_site_num) ? sites_id : std::vector<int>();
 }
 
 void Legalizer::init(){
@@ -225,30 +235,33 @@ void Legalizer::init(){
     init_sites = sites;
 }
 
-bool Legalizer::extend_at_site_id(std::vector<int> &sites_id,int x_site_num,int y_site_num){    
-    const Site &site = sites.at(sites_id.at(0));
+bool Legalizer::extend_at_site_id(const int root_site_id,std::vector<int> &sites_id,int x_site_num,int y_site_num){    
+    std::cout<<"LEGAL:: extend_at_site_id START"<<std::endl;
+    std::cout<<"LEGAL:: extend_at_site_id root_site_id "<<root_site_id<<std::endl;
+    const Site &site = sites.at(root_site_id);
     int x = site.get_x();
     int y = site.get_y();
 
     // extend x
+    std::cout<<"LEGAL:: extend_at_site_id x_site_num "<<x_site_num<<std::endl;
     for(int i=0;i<x_site_num;i++){
         for(int j=0;j<y_site_num;j++){
-            if(i == 0 && j== 0){
-                continue;
-            }
-            int new_x = x + i*site_width;
-            int new_y = y + j*site_height;
-            if(sites_xy_to_id_map.find(std::make_pair(new_x,new_y)) == sites_xy_to_id_map.end()){
+            int new_x = x + i* get_site_width();
+            int new_y = y + j* get_site_height();
+            auto it = sites_xy_to_id_map.find(std::make_pair(new_x,new_y));
+            if(it == sites_xy_to_id_map.end()){
+                std::cout<<"LEGAL:: extend_at_site_id END FAIL"<<std::endl;
                 return false;
             }
-            int new_site_id = sites_xy_to_id_map.at(std::make_pair(new_x,new_y));
-            if(empty_sites_id.find(new_site_id) == empty_sites_id.end()){
+            int new_site_id = it->second;
+            std::cout<<"LEGAL:: extend_at_site_id new_site_id "<<new_site_id<<std::endl;
+            if(!empty_sites_id.count(new_site_id)){
                 return false;
             }
             sites_id.push_back(new_site_id);
         }
     }
-        
+    std::cout<<"LEGAL:: extend_at_site_id END"<<std::endl;
     return true;
 }
 
@@ -262,8 +275,8 @@ bool Legalizer::try_extend_at_multiple_sites_id(const std::vector<int> &root_sit
         // extend from site_id
         for(int i=0;i<x_site_num;i++){
             for(int j=0;j<y_site_num;j++){                
-                int new_x = x + i*site_width;
-                int new_y = y + j*site_height;
+                int new_x = x + i*get_site_width();
+                int new_y = y + j*get_site_height();
                 if(sites_xy_to_id_map.find(std::make_pair(new_x,new_y)) == sites_xy_to_id_map.end()){
                     success = false;
                     break;
@@ -303,7 +316,8 @@ void Legalizer::place_available_cells_on_empty_sites(){
         int x = cell.get_x();
         int y = cell.get_y();
         int rx = cell.get_rx();
-        int ry = cell.get_ry();        
+        int ry = cell.get_ry();   
+        std::cout<<"LEGAL:: Try to place cell "<<netlist.get_cell_name(cid)<<" at ("<<x<<","<<y<<")"<<std::endl;
         const std::vector<int> &sites_id = nearest_empty_site_enough_space(x,y,rx,ry);
         if(!sites_id.empty()){
             it = not_on_site_cells_id.erase(it);
@@ -312,6 +326,10 @@ void Legalizer::place_available_cells_on_empty_sites(){
                 site_id_to_cell_id_map[site_id] = cid;
                 cell_id_to_site_id_map[cid].insert(site_id);
             }
+            const Site &site = sites.at(sites_id.at(0));
+            std::cout<<"LEGAL:: Place cell "<<netlist.get_cell_name(cid)<< " at ("<<site.get_x()<<","<<site.get_y()<<")"<<std::endl;
+        }else{
+            it++;
         }
     }
 }

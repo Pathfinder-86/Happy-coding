@@ -16,6 +16,7 @@
 #include "../legalizer/utilization.h"
 #include "../legalizer/legalizer.h"
 #include "../runtime/runtime.h"
+#include "../estimator/lib_cell_evaluator.h"
 namespace command{
 
 void check_input_data(){
@@ -137,7 +138,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             libcell.set_bits(bits);
             design.add_lib_cell(libcell);
             int lib_cell_id = libcell.get_id();
-            design.add_flipflop_id_to_bits_group(bits,lib_cell_id);
+            design.add_flipflop_id_to_bits_group(bits,lib_cell_id);            
             //std::cout<<"add FF finish"<<std::endl;            
         }else if(token == "Gate"){
             std::string name;
@@ -311,7 +312,14 @@ void CommandManager::read_input_data(const std::string &filename) {
             throw std::runtime_error("Invalid token " + token);
         }        
     }
-    std::cout << "PARSE:: FINISH" << std::endl;
+    std::cout << "PARSE:: FINISH" << std::endl;    
+    runtime_manager.get_runtime();
+    
+    std::cout<<"EVALUATOR:: LIB_INIT"<<std::endl;
+    // libcell evaluator
+    estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();    
+    ff_libcell_cost_manager.init();
+    std::cout<<"EVALUATOR:: LIB_END"<<std::endl;
     runtime_manager.get_runtime();
 
     // init timing
@@ -336,7 +344,11 @@ void CommandManager::read_input_data(const std::string &filename) {
         std::cout<<"LEGAL: All cells are on site"<<std::endl;
     }else{
         std::cout<<"LEGAL: Some cells are not on site do legalization"<<std::endl;
-        legalizer.legalize();
+        if( legalizer.legalize()){
+            std::cout<<"LEGAL: legalization success"<<std::endl;
+        }else{
+            std::cout<<"LEGAL: legalization fail"<<std::endl;
+        }
     }
     std::cout<<"LEGAL:: FINISH1"<<std::endl;
     runtime_manager.get_runtime();

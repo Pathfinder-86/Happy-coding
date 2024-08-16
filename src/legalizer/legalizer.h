@@ -61,6 +61,9 @@ public:
     void set_empty(bool empty){
         this->empty = empty;
     }
+    void set_id(int id){
+        this->id = id;
+    }
 };
 
 class Legalizer{
@@ -80,11 +83,11 @@ class Legalizer{
                 row_id_to_sites_id_map[row_id].push_back(site_id);
             }
 
-            if(site_height == -1){
-                site_height = site_height;
-                site_width = site_width;
+            if(this->site_height == -1){
+                this->site_height = site_height;
+                this->site_width = site_width;
             }else{
-                if(site_height != site_height || site_width != site_width){
+                if(this->site_height != site_height || this->site_width != site_width){
                     std::cerr << "Site height and width should be the same for all rows" << std::endl;
                     available = false;
                 }
@@ -105,7 +108,7 @@ class Legalizer{
         int nearest_empty_site_in_window_using_binary_search(int x, int y) const;
         std::vector<int> nearest_empty_site_enough_space(int x, int y, int rx, int ry);        
         std::vector<int> empty_sites_enough_space(int x, int y, int rx, int ry);
-        bool extend_at_site_id(std::vector<int> &sites_id,int x_site_num,int y_site_num);
+        bool extend_at_site_id(const int, std::vector<int> &sites_id,int x_site_num,int y_site_num);
         bool legalize_success() const{
             return not_on_site_cells_id.empty();
         }
@@ -114,6 +117,13 @@ class Legalizer{
         // sort
         void sort_rows_by_y();
         void sort_sites_by_y_then_x();
+        // site width and height
+        int get_site_width() const{
+            return site_width;
+        }
+        int get_site_height() const{
+            return site_height;
+        }
     private:   
         std::vector<Row> rows; // const 
         std::unordered_map<int,std::vector<int>> row_id_to_sites_id_map; //const

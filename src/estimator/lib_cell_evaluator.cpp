@@ -23,7 +23,8 @@ void FFLibcellCostManager::calculate_cost(){
         // REAL COST
         double power_cost = libcells[i].get_power() * power_factor;
         double area_cost = libcells[i].get_area() * area_factor;
-        bits_ff_libcells_cost[bits].push_back(FFLibCellCost(i,timing_cost,power_cost,area_cost));        
+        bits_ff_libcells_cost[bits].push_back(FFLibCellCost(i,timing_cost,power_cost,area_cost));
+        ff_libcells_cost.insert({i,FFLibCellCost(i,timing_cost,power_cost,area_cost)});
     }
 }
 

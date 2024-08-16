@@ -171,9 +171,8 @@ public:
     int pins_size() const { return pins.size(); }
     int nets_size() const { return nets.size(); }
     // libcell mapping
-    void modify_circuit_since_merge_cell(int c1,int c2);
-    bool cluster_cells(int c1, int c2);
-    void best_libcell_index(const std::vector<int> &bit_lib_cells_id, int &good_index);
+    void modify_circuit_since_merge_cell(int c1,int c2,const int new_lib_cell_id);
+    bool cluster_cells(int c1, int c2);    
     // sequential cells
     void init_all_sequential_cells_id(){
         sequential_cells_id.clear();

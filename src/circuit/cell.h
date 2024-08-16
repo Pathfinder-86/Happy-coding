@@ -53,6 +53,7 @@ public:
     // cluster
     void set_parent(int parent) { this->parent = parent; }
     int get_parent() const { return parent; }
+    bool is_clustered() const { return parent != -1; }
     // moveable
     bool is_moveable() const { return is_sequential(); }
     bool is_sequential() const { return sequential; }
@@ -79,7 +80,7 @@ public:
         slack = 0.0;                
     }
     // overlap 
-    bool overlap(const Cell& cell) const;    
+    bool overlap(const Cell& cell) const;        
 };
 }
 #endif // CELL_H
