@@ -15,6 +15,7 @@
 #include "../estimator/cost.h"
 #include "../legalizer/utilization.h"
 #include "../legalizer/legalizer.h"
+#include "../runtime/runtime.h"
 namespace command{
 
 void check_input_data(){
@@ -49,6 +50,8 @@ void CommandManager::read_input_data(const std::string &filename) {
     design::Design &design = design::Design::get_instance();
     timer::Timer &timer = timer::Timer::get_instance();
     legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
+    const runtime::RuntimeManager& runtime_manager = runtime::RuntimeManager::get_instance();
+
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Cannot open file " + filename);
@@ -59,7 +62,7 @@ void CommandManager::read_input_data(const std::string &filename) {
     std::stringstream ss;
     ss << file.rdbuf();
     file.close();
-    std::cout << "Parsing input data..." << std::endl;
+    std::cout << "PARSE:: INIT" << std::endl;
     std::unordered_map<int,double> init_pin_slack_map;
     while( ss >> token){
         if(token == "Alpha"){
@@ -308,42 +311,44 @@ void CommandManager::read_input_data(const std::string &filename) {
             throw std::runtime_error("Invalid token " + token);
         }        
     }
-    // update bins
-    legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
-    utilization_calculator.update_bins_utilization();
-
-    
+    std::cout << "PARSE:: FINISH" << std::endl;
+    runtime_manager.get_runtime();
 
     // init timing
-    std::cout<<"init timing"<<std::endl;
+    std::cout<<"TIMER:: INIT"<<std::endl;
     timer.init_timing(init_pin_slack_map);
     // calculate each cell worst slack
     for(auto &cell : netlist.get_mutable_cells()){
         cell.calculate_slack();
     }
-    // create timing nodes and connection
-    std::cout<<"TIMER:: create_timing_graph"<<std::endl;
+    // create timing nodes and connection    
     timer.create_timing_graph();
-    
-    
+    std::cout<<"TIMER:: FINISH"<<std::endl;
+    runtime_manager.get_runtime();
+
+
+    std::cout<<"LEGAL:: INIT"<<std::endl;
+    // update bins
+    legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
+    utilization_calculator.update_bins_utilization();    
     legalizer.init();
     if(legalizer.check_on_site()){
         std::cout<<"LEGAL: All cells are on site"<<std::endl;
     }else{
-        std::cout<<"LEGAL: Some cells are not on site"<<std::endl;
+        std::cout<<"LEGAL: Some cells are not on site do legalization"<<std::endl;
+        legalizer.legalize();
     }
+    std::cout<<"LEGAL:: FINISH1"<<std::endl;
+    runtime_manager.get_runtime();
+
 
     // calculate init 
     estimator::CostCalculator cost_calculator;
     cost_calculator.calculate_cost();    
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
-    solution_manager.keep_init_solution(cost_calculator.get_cost());    
-    
-    std::cout<<"INIT: "<<" FF_num:"<< netlist.get_sequential_cells_num() <<" "<<cost_calculator.get_cost()<<" timing cost:"<<cost_calculator.get_timing_cost()
-    <<" power cost:"<<cost_calculator.get_power_cost()<<" area cost:"<<cost_calculator.get_area_cost()<<" utilization cost"<<cost_calculator.get_utilization_cost()<<std::endl;
+    solution_manager.keep_init_solution(cost_calculator.get_cost());        
+    solution_manager.print_best_solution();
 
-    std::cout<<"Test get_init_cost:"<<solution_manager.get_init_cost()<<std::endl;
-    std::cout<<"read data from input done"<<std::endl;
     const config::ConfigManager &config = config::ConfigManager::get_instance();
     if(std::get<bool>(config.get_config_value("check_input_data")) == true){
         check_input_data();

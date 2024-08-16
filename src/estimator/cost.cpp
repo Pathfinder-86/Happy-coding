@@ -20,7 +20,12 @@ void CostCalculator::calculate_cost(){
         const circuit::Cell& cell = cells.at(cell_id);
         area_cost += area_factor * cell.get_area();
         power_cost += power_factor * cell.get_power();
-        timing_cost += timing_factor * cell.get_slack();
+        double slack = cell.get_slack();
+        if(slack < 0){
+            timing_cost += timing_factor * std::abs(slack);
+        }else{
+            timing_cost = 0;
+        }        
         //std::cout<<"cell: "<<cell_name<<std::endl;
         //std::cout<<"area: "<<cell.get_area()<<" "<<cell.get_area() * area_factor<<std::endl;
         //std::cout<<"power: "<<cell.get_power()<<" "<<cell.get_power() * power_factor<<std::endl;

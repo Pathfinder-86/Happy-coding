@@ -113,11 +113,14 @@ public:
     void update_slack_since_cell_move(int cell_id);
     void update_slack_since_libcell_change(int cell_id);
     // banking and debanking
-    void update_timing(int ccell_id);
+    void update_timing(int cell_id);
+    // all
+    void update_timing();
     // mutable
     TimingNode& get_mutable_timing_node(int pin_id){
         return timing_nodes.at(pin_id);
     }
+    std::vector<int> dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin_output_pin_id,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay, const double q_pin_delay);    
 private:
     // slack on each node
     std::unordered_map<int,TimingNode> timing_nodes;

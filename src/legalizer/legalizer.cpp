@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <algorithm>
 #include <climits>
+#include <../runtime/runtime.h>
+#include <iostream>
 
 namespace legalizer{
 
@@ -128,6 +130,13 @@ std::vector<int> Legalizer::nearest_empty_site_enough_space(int x, int y, int rx
     return extend_at_site_id(site_ids,x_site_num,y_site_num) ? site_ids : std::vector<int>();
 }
 
+void Legalizer::init(){
+    const runtime::RuntimeManager &runtime_manager = runtime::RuntimeManager::get_instance();
+    std::cout<<"LEGAL:: INIT_BLOCKAGE"<<std::endl;
+    init_blockage();
+    runtime_manager.get_runtime();
+    init_sites = sites;
+}
 
 bool Legalizer::extend_at_site_id(std::vector<int> &sites_id,int x_site_num,int y_site_num){    
     const Site &site = sites.at(sites_id.at(0));
@@ -250,6 +259,9 @@ void Legalizer::print_empty_sites() const{
 
 
 bool Legalizer::legalize(){
+    const runtime::RuntimeManager &runtime_manager = runtime::RuntimeManager::get_instance();
+    std::cout<<"LEGAL:: LEGALIZE START"<<std::endl;    
+    runtime_manager.get_runtime();
     if(!available){
         return false;
     }    
@@ -266,6 +278,9 @@ bool Legalizer::legalize(){
         }
         return false;
     }
+    std::cout<<"LEGAL:: LEGALIZE FINISH"<<std::endl;
+    runtime_manager.get_runtime();
+
     return true;
 }
 

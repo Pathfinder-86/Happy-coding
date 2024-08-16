@@ -46,7 +46,7 @@ namespace estimator {
             }
             const std::vector<circuit::Cell>& get_cells() const{
                 return cells;
-            }
+            }            
         private:
             std::vector<circuit::Cell> cells;
             std::unordered_set<int> sequential_cells_id;
@@ -85,7 +85,18 @@ namespace estimator {
             }
             void keep_init_solution(double cost = 0.0);
             void keep_best_solution();
-            void keep_current_solution();            
+            void keep_current_solution();
+
+            void print_cost(const Solution&) const;
+            void print_best_solution() const{
+                print_cost(best_solution);
+            }
+            void print_current_solution() const{
+                print_cost(current_solution);
+            }
+            void print_init_solution() const{
+                print_cost(init_solution);
+            }
         private:
             Solution best_solution;
             Solution init_solution;

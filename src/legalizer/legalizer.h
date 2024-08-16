@@ -68,13 +68,7 @@ class Legalizer{
                 }
             }
         }
-        void init(){
-            init_blockage();
-            init_sites = sites;
-            place_available_cells_on_empty_sites();
-            //init_rows = rows;
-            print_empty_sites();
-        }
+        void init();
         void reset(){
             //rows = init_rows;
             sites = init_sites;
