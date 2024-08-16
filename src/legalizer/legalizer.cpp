@@ -39,27 +39,102 @@ void Legalizer::init_blockage(){
         int rx = cell.get_rx();
         int ry = cell.get_ry();
         // remove overlapping sites
-        for(auto it = sites.begin(); it != sites.end();){
-            int sx = it->get_x();
-            int sy = it->get_y();
-            int srx = it->get_rx();
-            int sry = it->get_ry();
-            // if not overlap
-            if(rx <= sx || ry <= sy || x >= srx || y >= sry){
-                it++;
-                continue;
-            }else{
-                it = sites.erase(it);
-                //std::cout<<"Blockage at site ("<<sx<<","<<sy<<")"<<std::endl;
-            }                        
+
+        // Binary search to find the starting row index
+        int start = 0;
+        int end = rows.size() - 1;
+        int startRowIdx = -1;
+        while (start <= end) {
+            int mid = start + (end - start) / 2;
+            if (rows[mid].get_y() <= y && rows[mid].get_ry() > y) {
+                startRowIdx = mid;
+                break;
+            } else if (rows[mid].get_y() >= y) {
+                end = mid - 1;
+            } else {
+                start = mid + 1;
+            }
         }
-        
+
+        // Binary search to find the ending row index
+        start = 0;
+        end = rows.size() - 1;
+        int endRowIdx = -1;
+        while (start <= end) {
+            int mid = start + (end - start) / 2;
+            if (rows[mid].get_y() < ry && rows[mid].get_ry() >= ry) {
+                endRowIdx = mid;
+                break;
+            } else if (rows[mid].get_y() >= ry) {
+                end = mid - 1;
+            } else {
+                start = mid + 1;
+            }
+        }
+
+        // Remove x overlapping sites in the rows
+        for (int i = startRowIdx; i <= endRowIdx; i++) {
+            int row_id = rows[i].get_id();
+            const std::vector<int> &sites_id = row_id_to_sites_id_map.at(row_id);
+            // sites is sorted by x using binary search to find the starting site index
+            start = 0;
+            end = sites_id.size() - 1;
+            int startSiteIdx = -1;
+            while (start <= end) {
+                int mid = start + (end - start) / 2;
+                int site_id = sites_id[mid];
+                if (sites[site_id].get_x() <= x && sites[site_id].get_rx() > x) {
+                    startSiteIdx = mid;
+                    break;
+                } else if (sites.at(sites_id[mid]).get_x() >= x) {
+                    end = mid - 1;
+                } else {
+                    start = mid + 1;
+                }
+            }
+
+
+            // remove site until site.x >= rx
+            for(int i=startSiteIdx;i<sites_id.size();i++){
+                int site_id = sites_id.at(i);
+                Site &site = sites.at(site_id);
+                if(site.get_x() >= rx){
+                    break;
+                }
+                site.set_empty(false);
+            }
+
+        }
     }
-    for(int site_id = 0; site_id < sites.size(); site_id++){        
-        empty_sites_id.insert(site_id);
-        sites_id_to_xy_map[site_id] = std::make_pair(sites.at(site_id).get_x(),sites.at(site_id).get_y());
-        sites_xy_to_id_map[std::make_pair(sites.at(site_id).get_x(),sites.at(site_id).get_y())] = site_id; 
+    // ignore sites been blocked by combinational cells
+    std::vector<Site> new_sites;
+    for(const Site &site : sites){
+        if(site.is_empty()){
+            new_sites.push_back(site);
+        }
     }
+    sites = new_sites;
+    sort_sites_by_y_then_x();
+    for(const auto &it : sites){        
+        empty_sites_id.insert(it.get_id());
+        sites_id_to_xy_map[it.get_id()] = std::make_pair(it.get_x(),it.get_y());
+        sites_xy_to_id_map[std::make_pair(it.get_x(),it.get_y())] = it.get_id();
+    }
+}
+
+void Legalizer::sort_rows_by_y(){
+    std::sort(rows.begin(),rows.end(),[](const Row &a, const Row &b){
+        return a.get_y() < b.get_y();
+    });
+}
+
+void Legalizer::sort_sites_by_y_then_x(){
+    std::sort(sites.begin(),sites.end(),[](const Site &a, const Site &b){
+        if(a.get_y() == b.get_y()){
+            return a.get_x() < b.get_x();
+        }
+        return a.get_y() < b.get_y();
+    });
 }
 
 int Legalizer::nearest_empty_site(int x, int y) const{
@@ -84,6 +159,16 @@ int Legalizer::nearest_empty_site(int x, int y) const{
     }
     return nearest_site_id;
 }
+
+int Legalizer::nearest_empty_site_in_window_using_binary_search(int x, int y) const{
+    auto it = sites_xy_to_id_map.find(std::make_pair(x,y));
+    if(it != sites_xy_to_id_map.end() && empty_sites_id.find(it->second) != empty_sites_id.end()){
+        return it->second;
+    }
+    
+    //TODO: If legalization is too slow switch to this method
+}
+
 
 std::vector<int> Legalizer::distance_order_empty_sites(int x, int y){
     std::vector<std::pair<int,int>> site_id_distance;
@@ -115,6 +200,7 @@ std::vector<int> Legalizer::empty_sites_enough_space(int x, int y, int rx, int r
     int x_site_num = (rx - x) / site_width;
     int y_site_num = (ry - y) / site_height;
     std::vector<int> ret_sites_id;
+    ret_sites_id.reserve(x_site_num * y_site_num);
     return try_extend_at_multiple_sites_id(empty_sites_sort_by_distance,x_site_num,y_site_num,ret_sites_id)?  ret_sites_id : std::vector<int>();
 }
 
@@ -125,14 +211,15 @@ std::vector<int> Legalizer::nearest_empty_site_enough_space(int x, int y, int rx
     }
     int x_site_num = (rx - x) / site_width;
     int y_site_num = (ry - y) / site_height;
-    std::vector<int> site_ids;
-    site_ids.push_back(nearest_site_id);
-    return extend_at_site_id(site_ids,x_site_num,y_site_num) ? site_ids : std::vector<int>();
+    std::vector<int> sites_id;
+    sites_id.reserve(x_site_num * y_site_num);  
+    return extend_at_site_id(sites_id,x_site_num,y_site_num) ? sites_id : std::vector<int>();
 }
 
 void Legalizer::init(){
     const runtime::RuntimeManager &runtime_manager = runtime::RuntimeManager::get_instance();
     std::cout<<"LEGAL:: INIT_BLOCKAGE"<<std::endl;
+    sort_rows_by_y();
     init_blockage();
     runtime_manager.get_runtime();
     init_sites = sites;
@@ -195,6 +282,8 @@ bool Legalizer::try_extend_at_multiple_sites_id(const std::vector<int> &root_sit
 
         if(success){            
             return true;
+        }else{
+            ret_sites_id.clear();
         }
     }
     return false;
@@ -265,8 +354,19 @@ bool Legalizer::legalize(){
     if(!available){
         return false;
     }    
-    place_available_cells_on_empty_sites();
+    std::cout<<"LEGAL:: place_available_cells_on_empty_sites START"<<std::endl;
+    runtime_manager.get_runtime();
+    place_available_cells_on_empty_sites();    
+    std::cout<<"LEGAL:: place_available_cells_on_empty_sites FINISH"<<std::endl;
+    runtime_manager.get_runtime();
+
+    std::cout<<"LEGAL:: move_unavailable_cells_to_empty_sites START"<<std::endl;
+    runtime_manager.get_runtime();
     move_unavailable_cells_to_empty_sites();
+    std::cout<<"LEGAL:: move_unavailable_cells_to_empty_sites FINISH"<<std::endl;
+    runtime_manager.get_runtime();
+
+
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const std::vector<circuit::Cell> &cells = netlist.get_cells();
     if(!legalize_success()){

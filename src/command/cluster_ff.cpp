@@ -7,7 +7,7 @@ namespace command{
 void CommandManager::test_cluster_ff() {    
     circuit::Netlist &netlist = circuit::Netlist::get_instance();    
     // test
-    std::cout<<"test cluster_ff"<<std::endl;
+    std::cout<<"COMMAND:: test cluster_ff"<<std::endl;
     std::unordered_set<int> ff_cells_id;
     ff_cells_id = netlist.get_sequential_cells_id();
     if(ff_cells_id.size() < 2){

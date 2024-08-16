@@ -9,11 +9,11 @@
 #include <../design/design.h>
 namespace timer {
 
-class TimingNode{
-    public:        
+class TimingNode{            
+    public:    
         TimingNode(){}
-        TimingNode(int pin_id,double slack):pin_id(pin_id),slack(slack),is_fanin_sequential(false){}
-        TimingNode(int pin_id):pin_id(pin_id),slack(0.0),is_fanin_sequential(false){}
+        TimingNode(int pin_id,double slack):pin_id(pin_id),slack(slack){}
+        TimingNode(int pin_id):pin_id(pin_id),slack(0.0){}
 
         int get_pin_id() const{
             return pin_id;
@@ -69,8 +69,6 @@ class TimingNode{
         int pin_id;
         double slack;
 
-        bool is_fanin_sequential;
-
         // OTHER:
         // Q pin delay
         double q_pin_delay;        
@@ -94,7 +92,10 @@ public:
         return timer;
     }
 
-    Timer(){}
+    Timer(){
+        const design::Design &design = design::Design::get_instance();
+        displacement_delay_factor = design.get_displacement_delay();
+    }
     void init_timing(const std::unordered_map<int,double> &init_pin_slack_map);
     double get_slack(int pin_id) const {
         if(timing_nodes.find(pin_id) == timing_nodes.end()){
@@ -104,7 +105,11 @@ public:
         }                
     }
     void set_slack(int pin_id, double slack) {
-        timing_nodes[pin_id].set_slack(slack);
+        if(timing_nodes.find(pin_id) == timing_nodes.end()){
+            timing_nodes.insert({pin_id,TimingNode(pin_id,slack)});
+        }else{
+            timing_nodes.at(pin_id).set_slack(slack);
+        }
     }
     // path from q_pin to each d_pin
     void create_timing_graph();
@@ -121,10 +126,14 @@ public:
         return timing_nodes.at(pin_id);
     }
     std::vector<int> dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin_output_pin_id,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay, const double q_pin_delay);    
+    double get_displacement_delay_factor() const{
+        return displacement_delay_factor;
+    }
 private:
     // slack on each node
     std::unordered_map<int,TimingNode> timing_nodes;
     std::unordered_set<int> visited;
+    double displacement_delay_factor;
 
 };
 

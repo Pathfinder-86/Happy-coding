@@ -24,18 +24,21 @@ void CostCalculator::calculate_cost(){
         if(slack < 0){
             timing_cost += timing_factor * std::abs(slack);
         }else{
-            timing_cost = 0;
+            timing_cost += 0;
         }        
-        //std::cout<<"cell: "<<cell_name<<std::endl;
-        //std::cout<<"area: "<<cell.get_area()<<" "<<cell.get_area() * area_factor<<std::endl;
-        //std::cout<<"power: "<<cell.get_power()<<" "<<cell.get_power() * power_factor<<std::endl;
-        //std::cout<<"slack: "<<cell.get_slack()<<" "<<cell.get_slack() * timing_factor<<std::endl;
+        sequential_cells_cost.push_back( CellCost(cell_id, timing_cost, power_cost, area_cost) );   
     }
     // TODO:  add utilization cost
     const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();
     int overflow_bins = utilization.get_overflow_bins();
-    utilization_cost = utilization_factor * overflow_bins;
-
-    total_cost = area_cost + power_cost + timing_cost + utilization_cost;    
+    utilization_cost = utilization_factor * overflow_bins;    
+    total_cost = area_cost + power_cost + timing_cost + utilization_cost;
+    std::cout<<"COSTCAL:: INIT"<<std::endl;
+    std::cout << "Total Cost: " << total_cost << std::endl;
+    std::cout << "Area Cost: " << area_cost << std::endl;
+    std::cout << "Power Cost: " << power_cost << std::endl;
+    std::cout << "Timing Cost: " << timing_cost << std::endl;
+    std::cout << "Utilization Cost: " << utilization_cost << std::endl;
+    std::cout<<"COSTCAL:: END"<<std::endl;
 }
 }

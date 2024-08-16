@@ -343,7 +343,7 @@ void CommandManager::read_input_data(const std::string &filename) {
 
 
     // calculate init 
-    estimator::CostCalculator cost_calculator;
+    estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();
     cost_calculator.calculate_cost();    
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
     solution_manager.keep_init_solution(cost_calculator.get_cost());        
@@ -354,8 +354,19 @@ void CommandManager::read_input_data(const std::string &filename) {
         check_input_data();
     }
     bool is_overlap = netlist.check_overlap();
+    if(is_overlap == true){
+        std::cout<<"OVERLAP:: overlap detected"<<std::endl;
+    }else{
+        std::cout<<"OVERLAP:: no overlap"<<std::endl;
+    }
+    runtime_manager.get_runtime();
     bool is_out_of_die = netlist.check_out_of_die();
-    std::cout<<"overlap:"<<is_overlap<<" out of die:"<<is_out_of_die<<std::endl;
+    if(is_out_of_die == true){
+        std::cout<<"OUTOFDIE:: some cells are out of die"<<std::endl;
+    }else{ 
+        std::cout<<"OUTOFDIE:: all cells are in die"<<std::endl;
+    }
+    runtime_manager.get_runtime();    
 }
 
 
