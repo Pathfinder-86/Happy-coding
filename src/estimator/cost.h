@@ -24,6 +24,9 @@ struct CellCost {
         double get_area_cost() const {
             return area_cost;
         }
+        double get_total_cost() const {
+            return timing_cost + power_cost + area_cost;
+        }
 };
 
 class CostCalculator{    

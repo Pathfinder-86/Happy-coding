@@ -131,6 +131,9 @@ public:
             return bits_flipflop_id_map.at(bit);
         }
     }
+    const std::vector<LibCell>& get_lib_cells() const {
+        return lib_cells;
+    }
 private:    
     CostFactor cost_factor;
     std::vector<double> die_boundaries;
