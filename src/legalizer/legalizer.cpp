@@ -203,8 +203,8 @@ std::vector<int> Legalizer::empty_sites_enough_space(int x, int y, int rx, int r
         return empty_sites_sort_by_distance;
     }
 
-    int x_site_num = (rx - x) / get_site_width();
-    int y_site_num = (ry - y) / get_site_height();
+    int x_site_num = ((rx - x) % get_site_width() == 0)? (rx - x) / get_site_width() : (rx - x) / get_site_width() + 1;
+    int y_site_num = ((ry - y) % get_site_height() == 0)? (ry - y) / get_site_height() : (ry - y) / get_site_height() + 1;
     std::vector<int> ret_sites_id;
     ret_sites_id.reserve(x_site_num * y_site_num);
     return try_extend_at_multiple_sites_id(empty_sites_sort_by_distance,x_site_num,y_site_num,ret_sites_id)?  ret_sites_id : std::vector<int>();
@@ -218,8 +218,9 @@ std::vector<int> Legalizer::nearest_empty_site_enough_space(int x, int y, int rx
         return {};
     }
     std::cout<<"LEGAL:: x "<<x<<" y "<<y<<" rx "<<rx<<" ry "<<ry<<std::endl;
-    int x_site_num = (rx - x) / get_site_width();
-    int y_site_num = (ry - y) / get_site_height();
+    // TODO:
+    int x_site_num = ((rx - x) % get_site_width() == 0)? (rx - x) / get_site_width() : (rx - x) / get_site_width() + 1;
+    int y_site_num = ((ry - y) % get_site_height() == 0)? (ry - y) / get_site_height() : (ry - y) / get_site_height() + 1;
     std::cout<<"LEGAL:: x_site_num "<<x_site_num<<" y_site_num "<<y_site_num<<std::endl;
     std::vector<int> sites_id;
     sites_id.reserve(x_site_num * y_site_num);  
@@ -248,6 +249,7 @@ bool Legalizer::extend_at_site_id(const int root_site_id,std::vector<int> &sites
         for(int j=0;j<y_site_num;j++){
             int new_x = x + i* get_site_width();
             int new_y = y + j* get_site_height();
+            std::cout<<"LEGAL:: extend_at_site_id new_x "<<new_x<<" new_y "<<new_y<<std::endl;
             auto it = sites_xy_to_id_map.find(std::make_pair(new_x,new_y));
             if(it == sites_xy_to_id_map.end()){
                 std::cout<<"LEGAL:: extend_at_site_id END FAIL"<<std::endl;
@@ -277,6 +279,7 @@ bool Legalizer::try_extend_at_multiple_sites_id(const std::vector<int> &root_sit
             for(int j=0;j<y_site_num;j++){                
                 int new_x = x + i*get_site_width();
                 int new_y = y + j*get_site_height();
+                std::cout<<"LEGAL:: try_extend_at_multiple_sites_id new_x "<<new_x<<" new_y "<<new_y<<std::endl;
                 if(sites_xy_to_id_map.find(std::make_pair(new_x,new_y)) == sites_xy_to_id_map.end()){
                     success = false;
                     break;
@@ -305,14 +308,14 @@ bool Legalizer::try_extend_at_multiple_sites_id(const std::vector<int> &root_sit
 
 
 void Legalizer::place_available_cells_on_empty_sites(){
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    const std::vector<circuit::Cell> &cells = netlist.get_cells();
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    std::vector<circuit::Cell> &cells = netlist.get_mutable_cells();
     const std::unordered_set<int> &sequential_cells_id = netlist.get_sequential_cells_id();
     not_on_site_cells_id = sequential_cells_id;
 
     for(auto it = not_on_site_cells_id.begin(); it != not_on_site_cells_id.end();){
         int cid = *it;
-        const circuit::Cell &cell = cells.at(cid);
+        circuit::Cell &cell = cells.at(cid);    
         int x = cell.get_x();
         int y = cell.get_y();
         int rx = cell.get_rx();
@@ -325,7 +328,11 @@ void Legalizer::place_available_cells_on_empty_sites(){
                 empty_sites_id.erase(site_id);
                 site_id_to_cell_id_map[site_id] = cid;
                 cell_id_to_site_id_map[cid].insert(site_id);
-            }
+                int x = sites.at(site_id).get_x();
+                int y = sites.at(site_id).get_y();
+                std::cout<<"LEGAL:: Place cell "<<netlist.get_cell_name(cid)<< " at ("<<x<<","<<y<<")"<<std::endl;                
+                cell.move(x,y);
+            }   
             const Site &site = sites.at(sites_id.at(0));
             std::cout<<"LEGAL:: Place cell "<<netlist.get_cell_name(cid)<< " at ("<<site.get_x()<<","<<site.get_y()<<")"<<std::endl;
         }else{
