@@ -55,7 +55,7 @@ void Cell::calculate_slack(){
     }
     double worst_slack = 0.0;
     for(int pid : input_pins_id){
-        worst_slack = std::max(worst_slack,timer.get_slack(pid));
+        worst_slack = std::min(worst_slack,timer.get_slack(pid));
     }
     const std::string &cell_name = netlist.get_cell_name(id);
     std::cout<<"cell: "<<cell_name<<" worst_slack: "<<worst_slack<<std::endl;

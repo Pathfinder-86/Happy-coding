@@ -189,6 +189,9 @@ public:
     const std::unordered_set<int>& get_sequential_cells_id() const {
         return sequential_cells_id;
     }
+    int get_sequential_cells_num() const {
+        return sequential_cells_id.size();
+    }
     void remove_sequential_cell(int cell_id){
         sequential_cells_id.erase(cell_id);
     }

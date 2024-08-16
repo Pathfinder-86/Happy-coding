@@ -1,6 +1,7 @@
 #include "../circuit/netlist.h"
 #include "../circuit/cell.h"
 #include "solution.h"
+#include <iostream>
 namespace estimator {    
 void SolutionManager::keep_best_solution(){
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
@@ -19,4 +20,9 @@ void SolutionManager::keep_init_solution(double cost){
     current_solution = init_solution;
     best_solution = init_solution;
 }
+
+void SolutionManager::print_cost(const Solution &solution) const{
+    std::cout << "COST:: " << solution.get_cost() << std::endl;
+}
+
 }

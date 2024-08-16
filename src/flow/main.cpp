@@ -2,9 +2,13 @@
 #include "../command/command_manager.h"
 #include "../config/config_manager.h"
 #include <string>
+#include <../runtime/runtime.h>
 // ./executable data/testcase/input.txt res/output.txt -f runtcl
 // ./executable data/tiny/input.txt res/output.txt -f runtcl
 int main(int argc,char *argv[]) {
+
+    const runtime::RuntimeManager& runtime_manager = runtime::RuntimeManager::get_instance();
+    
     std::cout << "Hello, 2024 ICCAD ProblemB, Let's go !" << std::endl;
     config::ConfigManager& config_manager = config::ConfigManager::get_instance();
     config_manager.parse_config(argc, argv);
@@ -21,7 +25,7 @@ int main(int argc,char *argv[]) {
     }
     command::CommandManager& command_manager = command::CommandManager::get_instance();
     if(std::get<bool>(config_manager.get_config_value("runtcl_mode"))) {
-        command_manager.read_input_data(input_file);
+        command_manager.read_input_data(input_file);        
         command_manager.run();
         command_manager.test_cluster_ff();
         command_manager.write_output_data(output_file); 

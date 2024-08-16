@@ -9,17 +9,14 @@
 #include <../design/design.h>
 namespace timer {
 
-class TimingNode{
-    public:
-        // id = pid
+class TimingNode{            
+    public:    
         TimingNode(){}
-        TimingNode(int id,double slack):id(id),slack(slack){}
-        TimingNode(int id):id(id),slack(0.0){}
-        void slack_change(double delay){
-            this->slack += delay;
-        }
-        int get_id() const{
-            return id;
+        TimingNode(int pin_id,double slack):pin_id(pin_id),slack(slack){}
+        TimingNode(int pin_id):pin_id(pin_id),slack(0.0){}
+
+        int get_pin_id() const{
+            return pin_id;
         }
         double get_slack() const{
             return slack;
@@ -27,23 +24,65 @@ class TimingNode{
         void set_slack(double slack){
             this->slack = slack;
         }
-    private:
-        int id;
-        double slack;        
-};
-
-class TimingEdge{
-    public:
-        TimingEdge(){}
-        TimingEdge(double delay):delay(delay){}
-        double get_delay(){
-            return delay;
+        void add_slack(double slack){
+            this->slack += slack;
         }
-        void set_delay(double delay){
-            this->delay = delay;
-        }        
+        void set_q_pin_delay(double q_pin_delay){
+            this->q_pin_delay = q_pin_delay;
+        }
+        void set_q_pin_output_pin_placement_delay(double q_pin_output_pin_placement_delay){
+            this->q_pin_output_pin_placement_delay = q_pin_output_pin_placement_delay;
+        }
+        void set_input_pin_d_pin_placement_delay(double input_pin_d_pin_placement_delay){
+            this->input_pin_d_pin_placement_delay = input_pin_d_pin_placement_delay;
+        }
+        double get_q_pin_delay() const{
+            return q_pin_delay;
+        }
+        double get_q_pin_output_pin_placement_delay() const{
+            return q_pin_output_pin_placement_delay;
+        }
+        double get_input_pin_d_pin_placement_delay() const{
+            return input_pin_d_pin_placement_delay;
+        }
+        void set_q_pin_output_pin_location(const std::pair<int,int> &q_pin_output_pin_location){
+            this->q_pin_output_pin_location = q_pin_output_pin_location;
+        }
+        void set_d_pin_input_pin_location(const std::pair<int,int> &d_pin_input_pin_location){
+            this->d_pin_input_pin_location = d_pin_input_pin_location;
+        }
+
+        // itself
+        void update_slack_since_cell_move();
+        // move affect other pin slack
+        void cell_move_update_affected_d_pin_slack();
+
+        
+        // banking affect other pin slack                        
+        void libcell_change_update_affected_d_pin_slack(double);
+
+        void add_affected_d_pin(int d_pin_id){
+            affected_d_pins.insert(d_pin_id);
+        }
+
     private:
-        double delay = 0.0;
+        int pin_id;
+        double slack;
+
+        // OTHER:
+        // Q pin delay
+        double q_pin_delay;        
+        
+        // fanin sequentail Q pin location                
+        std::pair<int,int> q_pin_output_pin_location; // const
+        double q_pin_output_pin_placement_delay;
+
+        // ITSELF
+        // D pin fainin pin
+        std::pair<int,int> d_pin_input_pin_location; // const
+        double input_pin_d_pin_placement_delay;
+
+        std::unordered_set<int> affected_d_pins;    
 };
 
 class Timer {
@@ -53,17 +92,11 @@ public:
         return timer;
     }
 
-    Timer():dirty(true) {}
-    void update_timing();
-    void add_net_into_timing_graph(const circuit::Net& net);
-    void add_cell_delay_into_timing_graph(const circuit::Cell &cell);
+    Timer(){
+        const design::Design &design = design::Design::get_instance();
+        displacement_delay_factor = design.get_displacement_delay();
+    }
     void init_timing(const std::unordered_map<int,double> &init_pin_slack_map);
-    void set_dirty(bool dirty) {
-        this->dirty = dirty;
-    }
-    bool is_dirty() const {
-        return dirty;
-    }
     double get_slack(int pin_id) const {
         if(timing_nodes.find(pin_id) == timing_nodes.end()){
             return 0.0;
@@ -72,19 +105,36 @@ public:
         }                
     }
     void set_slack(int pin_id, double slack) {
-        timing_nodes[pin_id].set_slack(slack);
+        if(timing_nodes.find(pin_id) == timing_nodes.end()){
+            timing_nodes.insert({pin_id,TimingNode(pin_id,slack)});
+        }else{
+            timing_nodes.at(pin_id).set_slack(slack);
+        }
     }
-
+    // path from q_pin to each d_pin
+    void create_timing_graph();
+    void dfs_from_q_pin_to_each_d_pin(int q_pin);
+    int dfs_until_d_pin(int fanin_pid,int pid,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay,const double q_pin_delay);
+    void update_slack_since_cell_move(int cell_id);
+    void update_slack_since_libcell_change(int cell_id);
+    // banking and debanking
+    void update_timing(int cell_id);
+    // all
+    void update_timing();
+    // mutable
+    TimingNode& get_mutable_timing_node(int pin_id){
+        return timing_nodes.at(pin_id);
+    }
+    std::vector<int> dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin_output_pin_id,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay, const double q_pin_delay);    
+    double get_displacement_delay_factor() const{
+        return displacement_delay_factor;
+    }
 private:
-    // driver_pin_id -> sink_pin_ids
-    std::unordered_map<int,std::unordered_set<int>> timing_graph;
     // slack on each node
     std::unordered_map<int,TimingNode> timing_nodes;
-    // edge:from, to  -> delay
-    std::unordered_map<int,std::unordered_map<int,TimingEdge>> timing_edges;
-    // is timer dirty
-    bool dirty;
-    
+    std::unordered_set<int> visited;
+    double displacement_delay_factor;
+
 };
 
 

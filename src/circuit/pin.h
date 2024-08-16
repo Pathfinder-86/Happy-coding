@@ -3,14 +3,14 @@
 namespace circuit {
 class Pin {
 public:
-    Pin(): id(-1), cell_id(-1), net_id(-1), x(0.0), y(0.0), offset_x(0.0), offset_y(0.0),slack_related(false),pin_connection_type(-1) {}
+    Pin(): id(-1), cell_id(-1), net_id(-1), x(0.0), y(0.0), offset_x(0.0), offset_y(0.0),ff_pin(false),pin_connection_type(-1) {}
     int get_id() const { return id; }
     int get_cell_id() const { return cell_id; }
     int get_net_id() const { return net_id; }
     void set_id(int id) { this->id = id; }
     void set_cell_id(int cell_id) { this->cell_id = cell_id; }
     void set_net_id(int net_id) { this->net_id = net_id; }
-    bool is_port(){
+    bool is_port() const{
         return cell_id == -1;
     }
     double get_x() const { return x; }
@@ -22,10 +22,12 @@ public:
     void set_offset_x(double offset_x) { this->offset_x = offset_x; }
     void set_offset_y(double offset_y) { this->offset_y = offset_y; }
 
-    // slack related, FF D,Q pins, directly connect with FF D,Q pins
-    bool is_slack_related() { return slack_related; }
-    void set_slack_related(bool slack_related) { this->slack_related = slack_related; }
-
+    // is_ff_pin
+    bool is_ff_pin() { return ff_pin; }
+    void set_ff_pin(bool ff_pin) { this->ff_pin = ff_pin; }
+    
+    bool is_d_pin() const { return is_input() && ff_pin; }
+    
     // 0: input, 1: output, 2: clk
     bool is_input() const { return pin_connection_type == 0; }   // sink: 
     bool is_output() const { return pin_connection_type == 1; }  // source: driver pin of a net
@@ -39,9 +41,8 @@ private:
     int cell_id;
     int net_id;
     double x, y;
-    double offset_x, offset_y;
-    // slack related
-    bool slack_related;
+    double offset_x, offset_y;    
+    bool ff_pin;
     // traverse netlist
     int pin_connection_type; // 0: input, 1: output, else clk or other
 };
