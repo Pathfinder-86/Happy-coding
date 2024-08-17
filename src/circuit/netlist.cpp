@@ -2,6 +2,7 @@
 #include <iostream>
 #include <../timer/timer.h>
 #include <../estimator/lib_cell_evaluator.h>
+#include <../legalizer/legalizer.h>
 namespace circuit {
 
 bool Netlist::cluster_cells(int id1, int id2){
@@ -171,8 +172,16 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2, const int new_li
 
     // update timing information
     // cell1 q_pin_delay change
+    std::cout<<"CLUSTER:: update_timing"<<std::endl;
     timer::Timer &timer = timer::Timer::get_instance();
     timer.update_timing(id1);
+    
+    std::cout<<"CLUSTER:: legalizer"<<std::endl;
+    legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
+    std::cout<<"CLUSTER:: remove_cell"<<std::endl;
+    legalizer.remove_cell(id2);
+    std::cout<<"CLUSTER:: replacement_cell"<<std::endl;
+    legalizer.replacement_cell(id1);    
 }
 
 bool Netlist::check_overlap(){
@@ -190,6 +199,7 @@ bool Netlist::check_overlap(){
             }
         }
     }
+    return false;
 }
 
 bool Netlist::check_out_of_die(){

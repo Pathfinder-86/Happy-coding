@@ -124,21 +124,24 @@ class Legalizer{
         int get_site_height() const{
             return site_height;
         }
+        void remove_cell(int cell_id);
+        void replacement_cell(int cell_id);
     private:   
         std::vector<Row> rows; // const 
         std::unordered_map<int,std::vector<int>> row_id_to_sites_id_map; //const
 
-        std::vector<Site> init_sites;
+        std::vector<Site> init_sites;  // const
         // quick site access, check
-        std::vector<Site> sites;   
-        std::unordered_map<int,std::pair<int,int>> sites_id_to_xy_map;
-        std::map<std::pair<int,int>,int> sites_xy_to_id_map;
-        std::unordered_set<int> empty_sites_id;
+        std::vector<Site> sites; 
+        std::unordered_map<int,std::pair<int,int>> sites_id_to_xy_map; // const 
+        std::map<std::pair<int,int>,int> sites_xy_to_id_map; // const
+        std::unordered_set<int> empty_sites_id; // changable
 
         // site cell relation
         std::unordered_set<int> not_on_site_cells_id;
         std::unordered_map<int,int> site_id_to_cell_id_map;
-        std::unordered_map<int,std::unordered_set<int>> cell_id_to_site_id_map;
+        // SOLUTION:
+        std::unordered_map<int,std::vector<int>> cell_id_to_site_id_map;
 
         int site_width, site_height;
         bool available;
