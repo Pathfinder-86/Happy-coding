@@ -4,6 +4,7 @@
 #include "../design/design.h"
 #include "../legalizer/utilization.h"
 namespace estimator{
+
 void CostCalculator::calculate_cost(){
     reset();    
     const design::Design& design = design::Design::get_instance();
@@ -15,18 +16,24 @@ void CostCalculator::calculate_cost(){
     circuit::Netlist& netlist = circuit::Netlist::get_instance();
     const std::vector<circuit::Cell>& cells = netlist.get_cells();
     for(int cell_id : netlist.get_sequential_cells_id()){        
-        //int id = cell.get_id();
-        const std::string &cell_name = netlist.get_cell_name(cell_id);
+        //int id = cell.get_id();        
         const circuit::Cell& cell = cells.at(cell_id);
-        area_cost += area_factor * cell.get_area();
-        power_cost += power_factor * cell.get_power();
-        double slack = cell.get_slack();
-        if(slack < 0){
-            timing_cost += timing_factor * std::abs(slack);
-        }else{
-            timing_cost += 0;
-        }        
-        sequential_cells_cost.push_back( CellCost(cell_id, timing_cost, power_cost, area_cost) );   
+        double cell_timing_cost = 0.0;
+        double cell_power_cost = 0.0;
+        double cell_area_cost = 0.0;
+        if(!cell.is_clustered()){
+            double slack = cell.get_slack();
+            if(slack < 0){
+                cell_timing_cost = timing_factor * std::abs(slack);
+            }
+            cell_power_cost = power_factor * cell.get_power();
+            cell_area_cost = area_factor * cell.get_area();
+
+            timing_cost += cell_timing_cost;
+            area_cost += cell_area_cost;
+            power_cost += cell_power_cost;
+        }
+        sequential_cells_cost.push_back( CellCost(cell_id,cell_timing_cost,cell_power_cost,cell_area_cost) );
     }
     // TODO:  add utilization cost
     const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();
@@ -41,4 +48,5 @@ void CostCalculator::calculate_cost(){
     std::cout << "Utilization Cost: " << utilization_cost << std::endl;
     std::cout<<"COSTCAL:: END"<<std::endl;
 }
+
 }

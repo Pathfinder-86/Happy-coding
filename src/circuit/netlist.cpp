@@ -1,6 +1,7 @@
 #include "netlist.h"
 #include <iostream>
 #include <../timer/timer.h>
+#include <../estimator/lib_cell_evaluator.h>
 namespace circuit {
 
 bool Netlist::cluster_cells(int id1, int id2){
@@ -15,7 +16,7 @@ bool Netlist::cluster_cells(int id1, int id2){
     Cell& cell1 = get_mutable_cell(id1);
     Cell& cell2 = get_mutable_cell(id2);
     if(cell1.get_parent() != -1 || cell2.get_parent() != -1){
-        std::cout<<" Error: Cannot cluster a cell that is already clustered" << id1 << " " << id2 << std::endl;
+        std::cout<<"CLSUTER:: Cannot cluster a cell that is already clustered" << id1 << " " << id2 << std::endl;
         return false;
     }
 
@@ -26,44 +27,41 @@ bool Netlist::cluster_cells(int id1, int id2){
     const design::LibCell &lib_cell1 = design.get_lib_cell(lib_cell_id1);
     const design::LibCell &lib_cell2 = design.get_lib_cell(lib_cell_id2);
     int new_bits = lib_cell1.get_bits() + lib_cell2.get_bits();
-    // Try get new bits lib_cells target
-    const std::vector<int> &bit_lib_cells_id = design.get_bit_flipflops_id(new_bits);
-    if(bit_lib_cells_id.empty()){
-        std::cout<<" Error: Cannot find a flip-flop with " << new_bits << " bits\n";
+    // Get best cost flip-flop
+    const estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();
+    int best_lib_cell_id = ff_libcell_cost_manager.get_best_total_cost_lib_cell_id(new_bits);
+    
+    if(best_lib_cell_id == -1){
+        std::cout<<"CLSUTER:: Cannot find a flip-flop with " << new_bits << " bits\n";
         return false;
     }
+
+
+    double sum_of_origin_cost = ff_libcell_cost_manager.get_lib_cell_cost(lib_cell_id1) + ff_libcell_cost_manager.get_lib_cell_cost(lib_cell_id2);
+    double if_cluster_cost = ff_libcell_cost_manager.get_lib_cell_cost(best_lib_cell_id);
+    if(sum_of_origin_cost < if_cluster_cost){
+        std::cout<<"CLSUTER:: Cannot cluster cells because the sum of origin cost is less than the cluster cost" << std::endl;
+        std::cout<<"CLSUTER:: sum_of_origin_cost: "<<sum_of_origin_cost<<" if_cluster_cost: "<<if_cluster_cost<<std::endl;
+        return false;
+    }else{
+        std::cout<<"CLSUTER:: sum_of_origin_cost: "<<sum_of_origin_cost<<" if_cluster_cost: "<<if_cluster_cost<<std::endl;
+    }
     // MUST pass previous checks and call modify_circuit_since_merge_cell
-    modify_circuit_since_merge_cell(id1, id2);  
+    modify_circuit_since_merge_cell(id1, id2, best_lib_cell_id);  
     return true;
 }
 
-void Netlist::best_libcell_index(const std::vector<int> &bit_lib_cells_id, int &good_index){
-    return;
-}
 
-void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
+void Netlist::modify_circuit_since_merge_cell(int id1, int id2, const int new_lib_cell_id){
     const std::string &cell_name1 = get_cell_name(id1);
     const std::string &cell_name2 = get_cell_name(id2);
     std::cout<<"CLUSTER:: modify_circuit_since_merge_cell: "<<cell_name1<<" "<<cell_name2<<std::endl;
     const design::Design &design = design::Design::get_instance();
     Cell& cell1 = get_mutable_cell(id1);
     Cell& cell2 = get_mutable_cell(id2);
-    int lib_cell_id1 = cell1.get_lib_cell_id();
-    int lib_cell_id2 = cell2.get_lib_cell_id();
-    const design::LibCell &lib_cell1 = design.get_lib_cell(lib_cell_id1);
-    const design::LibCell &lib_cell2 = design.get_lib_cell(lib_cell_id2);
-    // netlist.get_cell_name()    
-    int new_bits = lib_cell1.get_bits() + lib_cell2.get_bits();
-    // Asummption: get first flip-flop in the list unit compare function finish
-    // TODO: Pick the best flip-flop
-    int good_index = 0;
-    const std::vector<int> &bit_lib_cells_id = design.get_bit_flipflops_id(new_bits);
-    best_libcell_index(bit_lib_cells_id, good_index);
-    int new_lib_cell_id = bit_lib_cells_id.at(good_index);
 
     // set cell1 to new_lib_cell
     cell1.set_lib_cell_id(new_lib_cell_id);
-
 
     // cell1 new location 
     // TODO: aummption: center of cell1 and cell2
@@ -168,6 +166,7 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2){
     cell1.set_other_pins_id(new_cell_other_pins_id);
     // clear cell2 pins
     cell2.clear();
+    remove_sequential_cell(id2);
 
 
     // update timing information

@@ -5,7 +5,7 @@
 #include "../timer/timer.h"
 namespace circuit {
 
-void Cell::move(int x, int y , bool update_timing){ 
+void Cell::move(int x, int y){ 
     this->x = x;
     this->y = y;
     Netlist &netlist =  Netlist::get_instance();
@@ -24,14 +24,8 @@ void Cell::move(int x, int y , bool update_timing){
         pin.set_x(pin.get_offset_x() + x);
         pin.set_y(pin.get_offset_y() + y);
     }
-    
-    // update_timing?
-    if(update_timing){
-        // TODO: update timing
-    }else{
-        // mark ??
-    }
-    
+    timer::Timer &timer = timer::Timer::get_instance();
+    timer.update_timing( get_id() );
 }
 
 double Cell::get_delay() const{
