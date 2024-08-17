@@ -33,7 +33,7 @@ public:
         pin.set_id(id);
         pins.push_back(pin);
         pin_id_map[name] = id;
-        pin_names.push_back(name);
+        original_pin_names.push_back(name);
     }
 
     void add_net(Net& net,const std::string& name) {
@@ -133,13 +133,6 @@ public:
             throw std::out_of_range("Invalid cell ID:" + std::to_string(id));
         }
     }
-    const std::string& get_pin_name(int id) const {
-        if (id >= 0 && id < static_cast<int>(pin_names.size())) {
-            return pin_names.at(id);
-        } else {
-            throw std::out_of_range("Invalid pin ID:" + std::to_string(id));
-        }
-    }
     const std::string& get_net_name(int id) const {
         if (id >= 0 && id < static_cast<int>(net_names.size())) {
             return net_names.at(id);
@@ -150,19 +143,8 @@ public:
     const std::vector<std::string>& get_cell_names() const {
         return cell_names;
     }
-    void update_pin_name(int id, const std::string& name) {
-        pin_names.at(id) = name;
-    }
-    const std::vector<std::string>& get_pin_names() const {
-        return pin_names;
-    }
     const std::vector<std::string>& get_net_names() const {
         return net_names;
-    }
-    //void cluster_cells(int id1, int id2);
-    // for mapping
-    void set_original_pin_names(){
-        original_pin_names = pin_names;
     }
     const std::vector<std::string>& get_original_pin_names() const {
         return original_pin_names;
@@ -177,7 +159,7 @@ public:
     void init_all_sequential_cells_id(){
         sequential_cells_id.clear();
         for(auto &cell: cells){
-            if(cell.is_sequential() && cell.get_parent() == -1){
+            if(cell.is_sequential() && cell.is_clustered() == false){
                 sequential_cells_id.insert(cell.get_id());
             }
         }
@@ -202,20 +184,36 @@ public:
     bool check_out_of_die();
     // print msg
     void print_cell_info(const circuit::Cell &cell);
+    // set_cells 
+    void switch_to_other_solution(const std::vector<Cell> &cells, const std::vector<Pin> &pins, const std::unordered_set<int> &sequential_cells_id){
+        set_cells(cells);
+        set_pins(pins);
+        set_sequential_cells_id(sequential_cells_id);
+    }
+    void set_cells(const std::vector<Cell> &cells){
+        this->cells = cells;
+    }
+    void set_sequential_cells_id(const std::unordered_set<int> &sequential_cells_id){
+        this->sequential_cells_id = sequential_cells_id;
+    }
+    void set_pins(const std::vector<Pin> &pins){
+        this->pins = pins;
+    }
+
 private:
     std::vector<Cell> cells;
-    std::vector<Net> nets;
+    std::vector<Net> nets; // const
     std::vector<Pin> pins;
 
     // name
-    std::unordered_map<std::string, int> cell_id_map;
-    std::unordered_map<std::string, int> net_id_map;
-    std::unordered_map<std::string, int> pin_id_map;
-    std::vector<std::string> cell_names;
-    std::vector<std::string> net_names;
-    std::vector<std::string> pin_names;
+    std::unordered_map<std::string, int> cell_id_map;  // const
+    std::unordered_map<std::string, int> net_id_map;  // const
+    std::unordered_map<std::string, int> pin_id_map;  // const
+    std::vector<std::string> cell_names; // const
+    std::vector<std::string> net_names;  // const
     // for mapping
-    std::vector<std::string> original_pin_names;
+    std::vector<std::string> original_pin_names; // const
+    // sequential cells
     std::unordered_set<int> sequential_cells_id;
 
 private:

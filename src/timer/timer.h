@@ -129,10 +129,13 @@ public:
     double get_displacement_delay_factor() const{
         return displacement_delay_factor;
     }
+    void switch_to_other_solution(const std::unordered_map<int,TimingNode> &timing_nodes);
+    const std::unordered_map<int,TimingNode>& get_timing_nodes() const{
+        return timing_nodes;
+    }
 private:
     // slack on each node
-    std::unordered_map<int,TimingNode> timing_nodes;
-    std::unordered_set<int> visited;
+    std::unordered_map<int,TimingNode> timing_nodes;    
     double displacement_delay_factor;
 
 };

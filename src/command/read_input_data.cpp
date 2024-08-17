@@ -239,8 +239,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                     circuit::Pin &pin = netlist.get_mutable_pin(pin_id);
                     pin.set_cell_id(cell_id);
                 }
-            }
-            netlist.set_original_pin_names();
+            }            
             netlist.init_all_sequential_cells_id();            
             //std::cout<<"add NumInstances finish"<<std::endl;
         }else if(token == "NumNets"){
@@ -358,8 +357,10 @@ void CommandManager::read_input_data(const std::string &filename) {
     estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();
     cost_calculator.calculate_cost();    
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
-    solution_manager.keep_init_solution(cost_calculator.get_cost());        
-    solution_manager.print_best_solution();
+    solution_manager.keep_init_solution();
+
+
+
 
     const config::ConfigManager &config = config::ConfigManager::get_instance();
     if(std::get<bool>(config.get_config_value("check_input_data")) == true){

@@ -1,5 +1,5 @@
 Die 0 0 50 30
 RowHeight 10
 Inst C1 FF 20 0 25 10
-Inst C2 FF 20 15 28 25
+Inst C2 FF 20 10 28 20
 Inst C4 other 10 10 15 20

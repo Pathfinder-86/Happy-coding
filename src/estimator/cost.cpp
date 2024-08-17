@@ -21,19 +21,28 @@ void CostCalculator::calculate_cost(){
         double cell_timing_cost = 0.0;
         double cell_power_cost = 0.0;
         double cell_area_cost = 0.0;
+        int bits = cell.get_bits();
         if(!cell.is_clustered()){
             double slack = cell.get_slack();
             if(slack < 0){
                 cell_timing_cost = timing_factor * std::abs(slack);
-            }
+            }            
             cell_power_cost = power_factor * cell.get_power();
             cell_area_cost = area_factor * cell.get_area();
 
             timing_cost += cell_timing_cost;
             area_cost += cell_area_cost;
             power_cost += cell_power_cost;
-        }
+        }        
         sequential_cells_cost.push_back( CellCost(cell_id,cell_timing_cost,cell_power_cost,cell_area_cost) );
+        // TODO:
+        // divide by bits since 2bits ff cost is definitely higher than 1 bit ff
+        // but the truth is that 2bits ff is more efficient than 2 1bit ff considering the avg
+        // cost adjusted by bits
+        cell_timing_cost /= bits;
+        cell_power_cost /= bits;
+        cell_area_cost /= bits;
+        adjusted_sequential_cells_cost.push_back( CellCost(cell_id,cell_timing_cost,cell_power_cost,cell_area_cost) );
     }
     // TODO:  add utilization cost
     const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();

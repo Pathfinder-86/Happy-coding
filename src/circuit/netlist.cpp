@@ -93,11 +93,7 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2, const int new_li
     std::cout<<"CLUSTER:: new_cell_input_pins_id check "<<new_cell_input_pins_id.size()<<std::endl;
     for(int i = 0; i < static_cast<int>(new_cell_input_pins_id.size()); i++){
         int pin_id = new_cell_input_pins_id.at(i);
-        Pin &pin = get_mutable_pin(pin_id);
-        // netlist.update_pin_name()
-        const std::string &new_pin_name = cell_name1 + "/" + new_lib_cell_input_pins_name.at(i);
-        std::cout<<"CLUSTER:: new_pin_name: "<<new_pin_name<<std::endl;
-        update_pin_name(pin_id, new_pin_name);
+        Pin &pin = get_mutable_pin(pin_id);        
         pin.set_offset_x(new_lib_cell_input_pins_position.at(i).first);
         pin.set_offset_y(new_lib_cell_input_pins_position.at(i).second);
         pin.set_x(new_cell_x + new_lib_cell_input_pins_position.at(i).first);
@@ -117,23 +113,16 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2, const int new_li
     std::cout<<"CLUSTER:: new_cell_output_pins_id check "<<new_cell_output_pins_id.size()<<std::endl;
     std::cout<<"CLUSTER:: cell1_output_pins_id check "<<cell1_output_pins_id.size()<<std::endl;
     std::cout<<"CLUSTER:: cell2_output_pins_id check "<<cell2_output_pins_id.size()<<std::endl;
-    for(int pid : new_cell_output_pins_id){
-        std::string pin_name = get_pin_name(pid);
-        std::cout<<"CLUSTER:: new_cell_output_pins_id: "<<pin_name<<std::endl;
-    }
+
+
     for(int i = 0; i < static_cast<int>(new_cell_output_pins_id.size()); i++){
         int pin_id = new_cell_output_pins_id.at(i);
         Pin &pin = get_mutable_pin(pin_id);
-        // netlist.update_pin_name()
-        const std::string &new_pin_name = cell_name1 + "/" + new_lib_cell_output_pins_name.at(i);
-        std::cout<<"CLUSTER:: new_pin_name: "<<new_pin_name<<std::endl;
-        update_pin_name(pin_id,  new_pin_name);        
         pin.set_offset_x(new_lib_cell_output_pins_position.at(i).first);
         pin.set_offset_y(new_lib_cell_output_pins_position.at(i).second);
         pin.set_x(new_cell_x + new_lib_cell_output_pins_position.at(i).first);
         pin.set_y(new_cell_y + new_lib_cell_output_pins_position.at(i).second);
         pin.set_cell_id(id1);
-        std::cout<<"CLUSTER:: new_pin_name: "<<new_pin_name<<" finish"<<std::endl;
     }
     std::cout<<"CLUSTER:: new_cell_output_pins_id: "<<new_cell_output_pins_id.size()<<std::endl;
     // other
@@ -146,14 +135,11 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2, const int new_li
     new_cell_other_pins_id.insert(new_cell_other_pins_id.end(), cell1_other_pins_id.begin(), cell1_other_pins_id.end());
     new_cell_other_pins_id.insert(new_cell_other_pins_id.end(), cell2_other_pins_id.begin(), cell2_other_pins_id.end());
     
-    const std::string &new_libcell_other_pin_name = new_lib_cell_other_pins_name.at(0);
     const std::pair<double, double> &new_libcell_other_pin_position = new_lib_cell_other_pins_position.at(0);
 
     for(int i = 0; i < static_cast<int>(new_cell_other_pins_id.size()); i++){
         int pin_id = new_cell_other_pins_id.at(i);
-        Pin &pin = get_mutable_pin(pin_id);
-        // netlist.update_pin_name()
-        update_pin_name(pin_id,  cell_name1 + "/" + new_libcell_other_pin_name);
+        Pin &pin = get_mutable_pin(pin_id); 
         pin.set_offset_x(new_libcell_other_pin_position.first);
         pin.set_offset_y(new_libcell_other_pin_position.second);
         pin.set_x(new_cell_x + new_libcell_other_pin_position.first);
@@ -233,4 +219,5 @@ void Netlist::print_cell_info(const Cell &cell){
     std::cout<<"Cell: "<<get_cell_name(cell.get_id())<<" LibCell: "<<lib_cell.get_name()<<" x: "<<cell.get_x()<<" y: "<<cell.get_y()<<" rx: "<<cell.get_rx()<<" ry: "<<cell.get_ry()<<std::endl;
 
 }
+
 } // namespace circuit

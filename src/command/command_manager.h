@@ -24,6 +24,7 @@ namespace command {
         void write_output_utilization_data(const std::string& filename);
         // function
         void test_cluster_ff();
+        void test_SA_cluster_ff();
     private:
         CommandManager() {}
         CommandManager(const CommandManager&) = delete;

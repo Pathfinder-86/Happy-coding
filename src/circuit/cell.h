@@ -80,7 +80,11 @@ public:
         slack = 0.0;                
     }
     // overlap 
-    bool overlap(const Cell& cell) const;        
+    bool overlap(const Cell& cell) const;
+    // bits
+    int get_bits() const {
+        return input_pins_id.size();
+    }
 };
 }
 #endif // CELL_H

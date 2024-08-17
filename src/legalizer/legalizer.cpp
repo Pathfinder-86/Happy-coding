@@ -232,8 +232,7 @@ void Legalizer::init(){
     //std::cout<<"LEGAL:: INIT_BLOCKAGE"<<" site_width "<<get_site_width()<<" site_height "<<get_site_height()<<std::endl;  
     sort_rows_by_y();
     init_blockage();
-    runtime_manager.get_runtime();
-    init_sites = sites;
+    runtime_manager.get_runtime();    
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     not_on_site_cells_id= netlist.get_sequential_cells_id();    
     place_available_cells_on_empty_sites();
@@ -462,6 +461,19 @@ bool Legalizer::legalize(){
     return true;
 }
 
-
+void Legalizer::switch_to_other_solution( const std::unordered_map<int,std::vector<int>> &site_idcell_id_to_site_id_map_to_cell_id_map){
+    this->cell_id_to_site_id_map = cell_id_to_site_id_map;
+    // update empty_sites_id
+    empty_sites_id.clear();    
+    for(int i=0;i<sites.size();i++){
+        empty_sites_id.insert(i);
+    }
+    for(const auto &it : cell_id_to_site_id_map){
+        for(int site_id : it.second){
+            empty_sites_id.erase(site_id);
+            site_id_to_cell_id_map[site_id] = it.first;
+        }        
+    }    
+}
 
 }
