@@ -228,9 +228,9 @@ void Timer::update_slack_since_cell_move(int cell_id){
 }
 
 void Timer::update_slack_since_libcell_change(int cell_id){
-    //std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_libcell_change"<<std::endl;
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    const circuit::Cell &cell = netlist.get_cell(cell_id);
+    std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_libcell_change"<<std::endl;    
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
+    const circuit::Cell &cell = netlist.get_cell(cell_id);    
     const design::Design &design = design::Design::get_instance();
     int libcell_id = cell.get_lib_cell_id();
     const design::LibCell &libcell = design.get_lib_cell(libcell_id);
@@ -244,7 +244,7 @@ void Timer::update_timing(int cell_id){
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     std::cout<<"TIMER:: update_timing cell_id:"<<cell_id<<std::endl;
     circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
-    if(cell.get_parent() != -1){
+    if(cell.is_clustered()){
         const std::string &cell_name = netlist.get_cell_name(cell_id);    
         std::cout<<"DEBUG cell: "<<cell_name<<" is clustered"<<std::endl;
         return;

@@ -10,7 +10,6 @@
 #include <net.h>
 #include <stdexcept>
 #include <unordered_set>
-
 namespace circuit {
 
 class Netlist {
@@ -25,7 +24,7 @@ public:
         cell.set_id(id);
         cells.push_back(cell);
         cell_id_map[name] = id;
-        cell_names.push_back(name);        
+        cell_names.push_back(name); 
     }
 
     void add_pin(Pin& pin,const std::string& name) {
@@ -46,7 +45,7 @@ public:
 
     const Cell& get_cell(int id) const {
         if (id >= 0 && id < static_cast<int>(cells.size())) {
-            return cells.at(id);
+            return cells[id];
         } else {
             throw std::out_of_range("Invalid cell ID");
         }
@@ -54,7 +53,7 @@ public:
 
     Cell& get_mutable_cell(int id) {
         if (id >= 0 && id < static_cast<int>(cells.size())) {
-            return cells.at(id);
+            return cells[id];
         } else {
             throw std::out_of_range("Invalid cell ID");
         }
@@ -154,7 +153,10 @@ public:
     int nets_size() const { return nets.size(); }
     // libcell mapping
     void modify_circuit_since_merge_cell(int c1,int c2,const int new_lib_cell_id);
-    bool cluster_cells(int c1, int c2);    
+    void modify_circuit_since_divide_cell(int c,const int new_lib_cell_id1,const int new_lib_cell_id2);
+
+    bool cluster_cells(int c1, int c2); 
+    bool decluster_cells(int cid);
     // sequential cells
     void init_all_sequential_cells_id(){
         sequential_cells_id.clear();

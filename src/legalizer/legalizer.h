@@ -98,7 +98,9 @@ class Legalizer{
         bool legalize();
         void init_blockage();
         void place_available_cells_on_empty_sites();
+        void place_available_cells_on_empty_sites_sort_by_slack();
         void move_unavailable_cells_to_empty_sites();
+        void move_unavailable_cells_to_empty_sites_sort_by_slack();
         void print_empty_sites() const;        
         int nearest_empty_site(int x, int y) const;
         int nearest_empty_site_in_window_using_binary_search(int x, int y) const;
@@ -122,6 +124,7 @@ class Legalizer{
         }
         void remove_cell(int cell_id);
         void replacement_cell(int cell_id);
+        void add_cell(int cell_id);
         
         void switch_to_other_solution(const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map);
         const std::unordered_map<int,std::vector<int>>& get_cell_id_to_site_id_map() const{

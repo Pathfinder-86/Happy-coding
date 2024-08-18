@@ -18,6 +18,7 @@ void CostCalculator::calculate_cost(){
     for(int cell_id : netlist.get_sequential_cells_id()){        
         //int id = cell.get_id();        
         const circuit::Cell& cell = cells.at(cell_id);
+        const std::string &cell_name = netlist.get_cell_name(cell_id);
         double cell_timing_cost = 0.0;
         double cell_power_cost = 0.0;
         double cell_area_cost = 0.0;
@@ -29,7 +30,7 @@ void CostCalculator::calculate_cost(){
             }            
             cell_power_cost = power_factor * cell.get_power();
             cell_area_cost = area_factor * cell.get_area();
-
+            std::cout<<"COSTCAL:: Cell:"<<cell_name<<" slack:"<<slack<<" timing_cost:"<<cell_timing_cost<<" power_cost:"<<cell_power_cost<<" area_cost:"<<cell_area_cost<<std::endl;
             timing_cost += cell_timing_cost;
             area_cost += cell_area_cost;
             power_cost += cell_power_cost;

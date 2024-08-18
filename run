@@ -1,1 +1,2 @@
 ./executable data/testcase/input.txt res/testcase/output.txt -f runtcl > log
+./sanity_20240801 data/testcase/input.txt res/testcase/output_best.txt

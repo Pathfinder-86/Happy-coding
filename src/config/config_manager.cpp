@@ -89,6 +89,7 @@ void ConfigManager::init_config_value(){
     add_config("contest_mode", ConfigType::Bool,true);
     add_config("plot_mode", ConfigType::Bool, false);
     add_config("runtcl_mode", ConfigType::Bool, false);
+    add_config("run_tiny", ConfigType::Bool, false);
 }
 
 void ConfigManager::add_config(const std::string &key, ConfigType type, const ConfigValue &value){
