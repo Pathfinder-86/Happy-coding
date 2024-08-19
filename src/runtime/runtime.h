@@ -24,5 +24,12 @@ namespace runtime {
             int seconds = runtime_seconds - (hours * 3600) - (minutes * 60);
             std::cout << "Runtime: " << hours << " h/ " << minutes << " min/ " << seconds << " sec" << std::endl;
         }
+        bool is_timeout() const {
+            double timeout_seconds = 1800; // 30 minutes
+            std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
+            std::chrono::duration<double> elapsed_seconds = current_time - start_time;
+            double runtime_seconds = elapsed_seconds.count();
+            return runtime_seconds > timeout_seconds;
+        }
     };
 }

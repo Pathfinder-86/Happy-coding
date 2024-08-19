@@ -30,7 +30,7 @@ void CostCalculator::calculate_cost(){
             }            
             cell_power_cost = power_factor * cell.get_power();
             cell_area_cost = area_factor * cell.get_area();
-            std::cout<<"COSTCAL:: Cell:"<<cell_name<<" slack:"<<slack<<" timing_cost:"<<cell_timing_cost<<" power_cost:"<<cell_power_cost<<" area_cost:"<<cell_area_cost<<std::endl;
+            //std::cout<<"COSTCAL:: Cell:"<<cell_name<<" slack:"<<slack<<" timing_cost:"<<cell_timing_cost<<" power_cost:"<<cell_power_cost<<" area_cost:"<<cell_area_cost<<std::endl;
             timing_cost += cell_timing_cost;
             area_cost += cell_area_cost;
             power_cost += cell_power_cost;

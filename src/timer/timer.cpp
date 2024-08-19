@@ -27,7 +27,7 @@ void TimingNode::update_slack_since_cell_move(){
 }
 
 void TimingNode::cell_move_update_affected_d_pin_slack(){
-    //std::cout<<"DEBUG cell: "<<get_pin_id()<<" cell_move_update_affected_d_pin_slack"<<std::endl;
+    ////std::cout<<"DEBUG cell: "<<get_pin_id()<<" cell_move_update_affected_d_pin_slack"<<std::endl;
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
     timer::Timer &timer = timer::Timer::get_instance();      
     const circuit::Pin &pin = netlist.get_pin(get_pin_id());
@@ -84,7 +84,7 @@ void Timer:: dfs_from_q_pin_to_each_d_pin(int q_pin_id){
     const circuit::Net &net = netlist.get_net(net_id);
 
     const std::string &net_name = netlist.get_net_name(net_id);
-    //std::cout<<"DEBUG net: "<<net_name<<" dfs find dpin path"<<std::endl;
+    ////std::cout<<"DEBUG net: "<<net_name<<" dfs find dpin path"<<std::endl;
 
     timing_nodes.insert(std::make_pair(q_pin_id, TimingNode(q_pin_id,0.0)));
 
@@ -200,27 +200,27 @@ void Timer::create_timing_graph(){
             dfs_from_q_pin_to_each_d_pin(q_pin_id);
         }
     }
-    std::cout<<"DEBUG create_timing_graph Finish "<<std::endl;
+    //std::cout<<"DEBUG create_timing_graph Finish "<<std::endl;
 }
 
 void Timer::update_slack_since_cell_move(int cell_id){
-    std::cout<<"TIMER:: cell: "<<cell_id<<" update_slack_since_cell_move"<<std::endl;
+    //std::cout<<"TIMER:: cell: "<<cell_id<<" update_slack_since_cell_move"<<std::endl;
 
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const circuit::Cell &cell = netlist.get_cell(cell_id);    
-    std::cout<<"TIMER:: cell: "<<cell_id<<" update_slack_since_cell_move itself"<<std::endl;
+    //std::cout<<"TIMER:: cell: "<<cell_id<<" update_slack_since_cell_move itself"<<std::endl;
     for(int d_pin_id : cell.get_input_pins_id()){        
         if(timing_nodes.find(d_pin_id) == timing_nodes.end()){
-            std::cout<<"DEBUG cell: "<<cell_id<<" d_pin_id: "<<d_pin_id<<" not found"<<std::endl;
+            //std::cout<<"DEBUG cell: "<<cell_id<<" d_pin_id: "<<d_pin_id<<" not found"<<std::endl;
             continue;
         }
         timing_nodes.at(d_pin_id).update_slack_since_cell_move();
     }
 
-    std::cout<<"TIMER:: cell: "<<cell_id<<" update_slack_since_cell_move next affected ffs"<<std::endl;
+    //std::cout<<"TIMER:: cell: "<<cell_id<<" update_slack_since_cell_move next affected ffs"<<std::endl;
     for(int q_pin_id : cell.get_output_pins_id()){        
         if(timing_nodes.find(q_pin_id) == timing_nodes.end()){
-            std::cout<<"DEBUG cell: "<<cell_id<<" q_pin_id: "<<q_pin_id<<" not found"<<std::endl;
+            //std::cout<<"DEBUG cell: "<<cell_id<<" q_pin_id: "<<q_pin_id<<" not found"<<std::endl;
             continue;
         }
         timing_nodes.at(q_pin_id).cell_move_update_affected_d_pin_slack();        
@@ -228,7 +228,7 @@ void Timer::update_slack_since_cell_move(int cell_id){
 }
 
 void Timer::update_slack_since_libcell_change(int cell_id){
-    std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_libcell_change"<<std::endl;    
+    //std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_libcell_change"<<std::endl;    
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
     const circuit::Cell &cell = netlist.get_cell(cell_id);    
     const design::Design &design = design::Design::get_instance();
@@ -242,14 +242,14 @@ void Timer::update_slack_since_libcell_change(int cell_id){
 
 void Timer::update_timing(int cell_id){
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    std::cout<<"TIMER:: update_timing cell_id:"<<cell_id<<std::endl;
+    //std::cout<<"TIMER:: update_timing cell_id:"<<cell_id<<std::endl;
     circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
     if(cell.is_clustered()){
         const std::string &cell_name = netlist.get_cell_name(cell_id);    
-        std::cout<<"DEBUG cell: "<<cell_name<<" is clustered"<<std::endl;
+        //std::cout<<"DEBUG cell: "<<cell_name<<" is clustered"<<std::endl;
         return;
     }    
-    //std::cout<<"DEBUG cell: "<<cell_name<<" id:"<<cell_id<<" update timing"<<std::endl;
+    ////std::cout<<"DEBUG cell: "<<cell_name<<" id:"<<cell_id<<" update timing"<<std::endl;
 
     update_slack_since_cell_move(cell_id);
     update_slack_since_libcell_change(cell_id);

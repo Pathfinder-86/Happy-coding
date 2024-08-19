@@ -1,3 +1,3 @@
-./executable data/tiny/input.txt res/tiny/output.txt -f runtcl_tiny
+./executable data/tiny/input.txt res/tiny/output.txt -f runtcl_tiny > log_tiny_100
 ./sanity_20240801 data/tiny/input.txt res/tiny/output_best.txt
 python3 plot_layout.py plot/tiny/layout.txt

@@ -27,15 +27,16 @@ int main(int argc,char *argv[]) {
     if(std::get<bool>(config_manager.get_config_value("runtcl_mode"))) {
         command_manager.read_input_data(input_file);        
         command_manager.run();
-        command_manager.test_cluster_ff();
-        command_manager.test_decluster_ff();
-        command_manager.write_output_data(output_file); 
+        //command_manager.test_cluster_ff();
+        //command_manager.test_decluster_ff();
+        command_manager.SA();
+        //command_manager.write_output_data(output_file);
         if(std::get<bool>(config_manager.get_config_value("run_tiny"))) {
-            command_manager.write_output_data_from_best_solution("res/tiny/output_best.txt");
+            command_manager.write_output_data_from_best_solution(output_file);
             command_manager.write_output_layout_data("plot/tiny/layout.txt");
             command_manager.write_output_utilization_data("plot/tiny/utilization.txt");
         }else{
-            command_manager.write_output_data_from_best_solution("res/testcase/output_best.txt");
+            command_manager.write_output_data_from_best_solution(output_file);
             command_manager.write_output_layout_data("plot/testcase/layout.txt");
             command_manager.write_output_utilization_data("plot/testcase/utilization.txt");
         }

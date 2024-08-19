@@ -25,7 +25,7 @@ namespace command {
         // function
         void test_cluster_ff();
         void test_decluster_ff();
-        void test_SA_cluster_ff();
+        void SA();
     private:
         CommandManager() {}
         CommandManager(const CommandManager&) = delete;

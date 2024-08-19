@@ -63,46 +63,4 @@ void CommandManager::test_cluster_ff() {
 }
 
 
-void CommandManager::test_SA_cluster_ff() {    
-    /*
-    circuit::Netlist &netlist = circuit::Netlist::get_instance();    
-    const runtime::RuntimeManager& runtime = runtime::RuntimeManager::get_instance();        
-    estimator::CostCalculator& cost_calculator = estimator::CostCalculator::get_instance();
-    estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
-    std::cout<<"COMMAND:: test SA cluster_ff START"<<std::endl;
-    runtime.get_runtime();
-
-    // SA
-    const double initial_temperature = 100.0;
-    const double cooling_rate = 0.95;
-    const int max_iterations = 1000;
-
-    double current_temperature = initial_temperature;
-    estimator::CostCalculator& cost_calculator = estimator::CostCalculator::get_instance();
-    double current_cost = cost_calculator.get_cost();
-    double best_cost = current_cost;
-    std::unordered_set<int> best_solution;
-
-    for (int iteration = 0; iteration < max_iterations; iteration++) {
-        std::unordered_set<int> new_solution = generate_new_solution();
-        double new_cost = calculate_cost(new_solution);
-
-        if (accept_new_solution(current_cost, new_cost, current_temperature)) {
-            current_cost = new_cost;
-            if (new_cost < best_cost) {
-                best_cost = new_cost;
-                best_solution = new_solution;
-            }
-        }
-
-        current_temperature *= cooling_rate;
-    }
-
-    // Apply the best solution
-    apply_solution(best_solution);
-    */
-}
-
-
-
 }

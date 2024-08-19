@@ -148,6 +148,13 @@ public:
     const std::vector<std::string>& get_original_pin_names() const {
         return original_pin_names;
     }
+    const std::string &get_original_pin_name(int id) const {
+        if (id >= 0 && id < static_cast<int>(original_pin_names.size())) {
+            return original_pin_names.at(id);
+        } else {
+            throw std::out_of_range("Invalid pin ID:" + std::to_string(id));
+        }
+    }
     int cells_size() const { return cells.size(); }
     int pins_size() const { return pins.size(); }
     int nets_size() const { return nets.size(); }
@@ -187,10 +194,12 @@ public:
     // print msg
     void print_cell_info(const circuit::Cell &cell);
     // set_cells 
-    void switch_to_other_solution(const std::vector<Cell> &cells, const std::vector<Pin> &pins, const std::unordered_set<int> &sequential_cells_id){
+    void switch_to_other_solution(const std::vector<Cell> &cells, const std::vector<Pin> &pins, const std::unordered_set<int> &sequential_cells_id,const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids,const std::unordered_map<int,int> &ff_cell_id_to_clk_group_id){
         set_cells(cells);
         set_pins(pins);
         set_sequential_cells_id(sequential_cells_id);
+        set_clk_group_id_to_ff_cell_ids(clk_group_id_to_ff_cell_ids);
+        set_ff_cell_id_to_clk_group_id(ff_cell_id_to_clk_group_id);
     }
     void set_cells(const std::vector<Cell> &cells){
         this->cells = cells;
@@ -201,7 +210,44 @@ public:
     void set_pins(const std::vector<Pin> &pins){
         this->pins = pins;
     }
-
+    // clk groups
+    void set_clk_group_id_to_ff_cell_ids(const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids){
+        this->clk_group_id_to_ff_cell_ids = clk_group_id_to_ff_cell_ids;
+    }
+    void set_ff_cell_id_to_clk_group_id(const std::unordered_map<int,int> &ff_cell_id_to_clk_group_id){
+        this->ff_cell_id_to_clk_group_id = ff_cell_id_to_clk_group_id;
+    }
+    void add_clk_group(const std::unordered_set<int> &clk_group){
+        int clk_group_id = clk_group_id_to_ff_cell_ids.size();
+        clk_group_id_to_ff_cell_ids[clk_group_id] = clk_group;
+        for(auto cell_id : clk_group){
+            ff_cell_id_to_clk_group_id[cell_id] = clk_group_id;
+        }  
+    }
+    int get_clk_group_id(int cell_id){
+        if(ff_cell_id_to_clk_group_id.count(cell_id)){
+            return ff_cell_id_to_clk_group_id[cell_id];
+        }else{
+            return -1;
+        }
+    }
+    void remove_cell_from_clk_group(int cell_id){
+        if(ff_cell_id_to_clk_group_id.count(cell_id)){
+            int clk_group_id = ff_cell_id_to_clk_group_id[cell_id];
+            ff_cell_id_to_clk_group_id.erase(cell_id);
+            clk_group_id_to_ff_cell_ids[clk_group_id].erase(cell_id);
+        }
+    }
+    void add_cell_to_clk_group(int cell_id,int clk_group_id){
+        ff_cell_id_to_clk_group_id[cell_id] = clk_group_id;
+        clk_group_id_to_ff_cell_ids[clk_group_id].insert(cell_id);
+    }
+    const std::unordered_map<int,std::unordered_set<int>> &get_clk_group_id_to_ff_cell_ids() const{
+        return clk_group_id_to_ff_cell_ids;
+    }            
+    const std::unordered_map<int,int> &get_ff_cell_id_to_clk_group_id() const{
+        return ff_cell_id_to_clk_group_id;
+    }
 private:
     std::vector<Cell> cells;
     std::vector<Net> nets; // const
@@ -217,6 +263,10 @@ private:
     std::vector<std::string> original_pin_names; // const
     // sequential cells
     std::unordered_set<int> sequential_cells_id;
+
+    // clk groups
+    std::unordered_map<int,std::unordered_set<int>> clk_group_id_to_ff_cell_ids;
+    std::unordered_map<int,int> ff_cell_id_to_clk_group_id;
 
 private:
     Netlist() {} // Private constructor to prevent instantiation

@@ -1,4 +1,5 @@
-run_tiny true
 dump_tcl_setting true
 plot_mode true
 runtcl_mode true
+clustering_rate 200
+max_iterations 10

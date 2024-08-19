@@ -244,15 +244,13 @@ void CommandManager::read_input_data(const std::string &filename) {
             //std::cout<<"add NumInstances finish"<<std::endl;
         }else if(token == "NumNets"){
 
-            // determine pin slack related
             int net_num = 0;
             ss >> net_num;
             for(int i = 0; i < net_num; i++){
                 std::string name;
                 int pin_num = 0;
                 ss >> token >> name >> pin_num;
-                circuit::Net net;
-                
+                circuit::Net net;                
                 // add pins to net
                 for(int j = 0; j < pin_num; j++){                    
                     std::string pin_name;
@@ -267,6 +265,26 @@ void CommandManager::read_input_data(const std::string &filename) {
                 for(auto pin_id : net.get_pins_id()){
                     circuit::Pin &pin = netlist.get_mutable_pin(pin_id);
                     pin.set_net_id(net_id);
+                }
+
+                const std::vector<int> &pins_id = net.get_pins_id();
+                if(pins_id.size() < 2){
+                    continue;
+                }
+                const std::string &pin_name = netlist.get_original_pin_name(pins_id.at(1));
+                if(pin_name.find("CLK") != std::string::npos){
+                    // CLK NET
+                    std::unordered_set<int> clk_group;
+                    for(int i=1;i<pin_num;i++){
+                        int pin_id = net.get_pins_id().at(i);
+                        int cell_id = netlist.get_pin(pin_id).get_cell_id();
+                        if(netlist.is_sequential_cell(cell_id)){
+                            clk_group.insert(cell_id);
+                        }
+                    }
+                    if(clk_group.size() > 1){
+                        netlist.add_clk_group(clk_group);
+                    }
                 }
             }
             //std::cout<<"add NumNets finish"<<std::endl;            
