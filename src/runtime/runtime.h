@@ -1,5 +1,6 @@
 #include <chrono>
 #include <iostream>
+#include <../config/config_manager.h>
 namespace runtime {
     class RuntimeManager {
     private:
@@ -25,7 +26,8 @@ namespace runtime {
             std::cout << "Runtime: " << hours << " h/ " << minutes << " min/ " << seconds << " sec" << std::endl;
         }
         bool is_timeout() const {
-            double timeout_seconds = 1800; // 30 minutes
+            config::ConfigManager &config_manager = config::ConfigManager::get_instance();            
+            double timeout_seconds = std::get<int>(config_manager.get_config_value("time_out")) * 60.0;
             std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
             std::chrono::duration<double> elapsed_seconds = current_time - start_time;
             double runtime_seconds = elapsed_seconds.count();

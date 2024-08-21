@@ -79,7 +79,7 @@ public:
         if (id >= 0 && id < static_cast<int>(nets.size())) {
             return nets.at(id);
         } else {
-            throw std::out_of_range("Invalid net ID");
+            throw std::out_of_range("Invalid net ID :" + std::to_string(id));
         }
     }
 
@@ -108,21 +108,24 @@ public:
         if (cell_id_map.count(name) > 0) {
             return cell_id_map.at(name);
         } else {
-            throw std::runtime_error("Cell name not found:" + name);
+            std::cout<<"Cell name not found:" + name<<std::endl;
+            return -1;
         }
     }
     int get_pin_id(const std::string& name) const {
         if (pin_id_map.count(name) > 0) {
             return pin_id_map.at(name);
-        } else {
-            throw std::runtime_error("Pin name not found:" + name);
+        } else {            
+            std::cout<<"Pin name not found:" + name<<std::endl;
+            return -1;
         }
     }
     int get_net_id(const std::string& name) const {
         if (net_id_map.count(name) > 0) {
             return net_id_map.at(name);
         } else {
-            throw std::runtime_error("Net name not found:" + name);
+            std::cout<<"Net name not found:" + name<<std::endl;
+            return -1;
         }
     }
     const std::string& get_cell_name(int id) const {

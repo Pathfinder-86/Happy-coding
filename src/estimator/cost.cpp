@@ -40,9 +40,13 @@ void CostCalculator::calculate_cost(){
         // divide by bits since 2bits ff cost is definitely higher than 1 bit ff
         // but the truth is that 2bits ff is more efficient than 2 1bit ff considering the avg
         // cost adjusted by bits
-        cell_timing_cost /= bits;
-        cell_power_cost /= bits;
-        cell_area_cost /= bits;
+        if(bits == 0){
+            std::cout<<"COSTCAL:: Cell:"<<cell_name<<" bits is 0"<<std::endl;
+        }else{
+            cell_timing_cost /= bits;
+            cell_power_cost /= bits;
+            cell_area_cost /= bits;
+        }
         adjusted_sequential_cells_cost.push_back( CellCost(cell_id,cell_timing_cost,cell_power_cost,cell_area_cost) );
     }
     // TODO:  add utilization cost

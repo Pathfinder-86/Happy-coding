@@ -96,10 +96,7 @@ void CommandManager::SA() {
         } else {
             std::cout<<"New cost is not better than current cost"<<current_cost<<std::endl;
             double delta = new_cost - current_cost;
-            double probability = 0.0;
-            if (current_temperature != 0.0) {
-                probability = std::exp(-delta / current_temperature);
-            }            
+            double probability = 0.025;       
             std::cout<<"Probability:"<<probability<<std::endl;
             if (rand() % 100 < probability * 100) {
                 solution_manager.keep_current_solution();
@@ -118,12 +115,18 @@ void CommandManager::SA() {
         if(runtime.is_timeout()){
             break;
         }
-        if(current_temperature < 0.1){
-            break;
-        }
     }
 
     solution_manager.switch_to_best_solution();
+    bool is_overlap = netlist.check_overlap();
+    bool is_out_of_die = netlist.check_out_of_die();
+    if(!is_overlap && !is_out_of_die){
+        std::cout<<"SA:: Final solution is legal"<<std::endl;
+    }else if(is_overlap){
+        std::cout<<"SA:: Final solution is overlap"<<std::endl;
+    }else{
+        std::cout<<"SA:: Final solution is out of die"<<std::endl;
+    }
     std::cout<<"COMMAND:: test SA END"<<std::endl;    
 }
 }

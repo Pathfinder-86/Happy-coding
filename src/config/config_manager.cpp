@@ -93,7 +93,8 @@ void ConfigManager::init_config_value(){
     add_config("clustering_rate", ConfigType::Double, 0.85);
     add_config("declustering_rate", ConfigType::Double, 0.15);
     add_config("max_iterations", ConfigType::Int, 10000);
-    add_config("cooling_rate", ConfigType::Double, 0.95);    
+    add_config("cooling_rate", ConfigType::Double, 0.95);
+    add_config("time_out", ConfigType::Int, 50);
 }
 
 void ConfigManager::add_config(const std::string &key, ConfigType type, const ConfigValue &value){

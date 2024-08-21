@@ -70,6 +70,9 @@ void Timer:: dfs_from_q_pin_to_each_d_pin(int q_pin_id){
 
     // q_pin and q_pin delay
     const circuit::Pin &q_pin = netlist.get_pin(q_pin_id);
+    if(q_pin.no_connection()){
+        return;
+    }
     int cell_id = q_pin.get_cell_id();    
     const circuit::Cell &cell = netlist.get_cell(cell_id);
     int libcell_id = cell.get_lib_cell_id();
@@ -80,10 +83,10 @@ void Timer:: dfs_from_q_pin_to_each_d_pin(int q_pin_id){
     const std::string &cell_name = netlist.get_cell_name(cell_id);
 
     // Traverse netlist from q_pin_output_pin
+    const std::string &q_pin_name = netlist.get_original_pin_name(q_pin_id);    
     int net_id = q_pin.get_net_id();
     const circuit::Net &net = netlist.get_net(net_id);
-
-    const std::string &net_name = netlist.get_net_name(net_id);
+    
     ////std::cout<<"DEBUG net: "<<net_name<<" dfs find dpin path"<<std::endl;
 
     timing_nodes.insert(std::make_pair(q_pin_id, TimingNode(q_pin_id,0.0)));
@@ -175,6 +178,9 @@ std::vector<int> Timer::dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin
             const circuit::Cell &cell = netlist.get_cell(cell_id);
             for(int output_pin_id : cell.get_output_pins_id()){
                 const circuit::Pin &output_pin = netlist.get_pin(output_pin_id);
+                if(output_pin.no_connection()){
+                    continue;
+                }
                 int output_net_id = output_pin.get_net_id();
                 const circuit::Net &output_net = netlist.get_net(output_net_id);                                
                 for(int next_input_pin_id : output_net.get_pins_id()){

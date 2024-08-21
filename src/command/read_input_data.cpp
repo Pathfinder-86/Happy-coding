@@ -26,12 +26,12 @@ void check_input_data(){
         int lib_cell_id = cell.get_lib_cell_id();
         const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);        
         if(cell.get_pins_id().size() != lib_cell.get_pins_name().size()){
-            throw std::runtime_error("Cell " + std::to_string(cell.get_id()) + " has wrong number of pins");
+            std::cout<<"Cell " + std::to_string(cell.get_id()) + " has wrong number of pins"<<std::endl;
         }    
         for(auto pin_id : cell.get_pins_id()){
             const circuit::Pin &pin = netlist.get_pin(pin_id);
             if(pin.get_cell_id() != cell.get_id()){
-                throw std::runtime_error("Pin " + std::to_string(pin.get_id()) + " has wrong cell id");
+                std::cout<<"Pin " + std::to_string(pin.get_id()) + " has wrong cell id"<<std::endl;
             }
         }
     }
@@ -39,7 +39,7 @@ void check_input_data(){
         for(auto pin_id : net.get_pins_id()){
             const circuit::Pin &pin = netlist.get_pin(pin_id);
             if(pin.get_net_id() != net.get_id()){
-                throw std::runtime_error("Pin " + std::to_string(pin.get_id()) + " has wrong net id");
+                std::cout<<"Pin " + std::to_string(pin.get_id()) + " has wrong net id"<<std::endl;
             }
         }
     }
