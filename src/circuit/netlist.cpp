@@ -47,19 +47,180 @@ bool Netlist::cluster_cells(int id1, int id2){
     }
 
 
-    double sum_of_origin_cost = ff_libcell_cost_manager.get_lib_cell_cost(lib_cell_id1) + ff_libcell_cost_manager.get_lib_cell_cost(lib_cell_id2);
-    double if_cluster_cost = ff_libcell_cost_manager.get_lib_cell_cost(best_lib_cell_id);
-    if(sum_of_origin_cost < if_cluster_cost){
-        std::cout<<"CLSUTER:: Cannot cluster cells because the sum of origin cost is less than the cluster cost" << std::endl;
-        std::cout<<"CLSUTER:: sum_of_origin_cost: "<<sum_of_origin_cost<<" if_cluster_cost: "<<if_cluster_cost<<std::endl;
-        return false;
-    }else{
-        std::cout<<"CLSUTER:: sum_of_origin_cost: "<<sum_of_origin_cost<<" if_cluster_cost: "<<if_cluster_cost<<std::endl;
-    }
+    //double sum_of_origin_cost = ff_libcell_cost_manager.get_lib_cell_cost(lib_cell_id1) + ff_libcell_cost_manager.get_lib_cell_cost(lib_cell_id2);
+    //double if_cluster_cost = ff_libcell_cost_manager.get_lib_cell_cost(best_lib_cell_id);
+    //if(sum_of_origin_cost < if_cluster_cost){
+    //    std::cout<<"CLSUTER:: Cannot cluster cells because the sum of origin cost is less than the cluster cost" << std::endl;
+    //    std::cout<<"CLSUTER:: sum_of_origin_cost: "<<sum_of_origin_cost<<" if_cluster_cost: "<<if_cluster_cost<<std::endl;
+    //    return false;
+    //}else{
+    //    std::cout<<"CLSUTER:: sum_of_origin_cost: "<<sum_of_origin_cost<<" if_cluster_cost: "<<if_cluster_cost<<std::endl;
+    //}
     // MUST pass previous checks and call modify_circuit_since_merge_cell
     modify_circuit_since_merge_cell(id1, id2, best_lib_cell_id);
     std::cout<<"CLUSTER:: cluster_cells: "<<id1<<" "<<id2<<" END"<<std::endl;
     return true;
+}
+
+// return 0: success , return 1: legalize fail, return 2: others
+int Netlist::cluster_cells(const std::vector<int> &cells_id){
+    const design::Design &design = design::Design::get_instance(); 
+    // seq and cluster
+    for(int cell_id : cells_id){
+        const Cell &cell = get_cell(cell_id);
+        if(cell.is_clustered()){
+            std::cout<<"CLSUTER:: Cannot cluster cells that are sequential cells\n";
+            return 2;
+        }
+    }
+    // clk net
+    int clk_group = -1;
+    for(int cell_id : cells_id){
+        if(clk_group == -1){
+            clk_group = get_clk_group_id(cell_id);
+        }else{
+            if(clk_group != get_clk_group_id(cell_id)){
+                std::cout<<"CLSUTER:: Cannot cluster cells that are not in the same clock group\n";
+                return 2;
+            }
+        }
+    }
+    // duplicate cell_id in cells_id
+    std::unordered_set<int> cells_id_set(cells_id.begin(), cells_id.end());
+    if(cells_id_set.size() != cells_id.size()){
+        std::cout<<"CLSUTER:: Cannot cluster cells that have duplicate cell_id\n";
+        return 2;
+    }
+    int new_bits = 0;
+    for(int cell_id : cells_id){
+        const Cell &cell = get_cell(cell_id);
+        int lib_cell_id = cell.get_lib_cell_id();
+        const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
+        int bits = lib_cell.get_bits();
+        new_bits += bits;
+    }
+
+    // Get best cost flip-flop
+    const estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();
+    int best_lib_cell_id = ff_libcell_cost_manager.get_best_total_cost_lib_cell_id(new_bits);
+    
+    if(best_lib_cell_id == -1){
+        std::cout<<"CLSUTER:: Cannot find a flip-flop with " << new_bits << " bits\n";
+        return 2;
+    }
+    return try_legal_and_modify_circuit_since_merge_cell(cells_id, best_lib_cell_id);    
+}
+
+// return 0: success , return 1: legalize fail, return 2: others
+int Netlist::try_legal_and_modify_circuit_since_merge_cell(const std::vector<int> &cells_id, const int new_lib_cell_id){
+    // check if legal
+    int new_cell_x = 0,new_cell_y = 0;
+    for(int cell_id : cells_id){
+        const Cell &cell = get_cell(cell_id);
+        new_cell_x += cell.get_x();
+        new_cell_y += cell.get_y();
+    }
+    new_cell_x /= cells_id.size();
+    new_cell_y /= cells_id.size();
+    const design::LibCell &new_lib_cell = design.get_lib_cell(new_lib_cell_id);
+    legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
+    std::vector<int> rect = { new_cell_x, new_cell_y, new_cell_x + new_lib_cell.get_width(), new_cell_y + new_lib_cell.get_height() };
+    // remove cells_id from cells and try place new_lib_cell
+    bool legal = legalizer.try_legal_remove_cells_and_add_rect(cells,rect);
+    if(!legal){
+        std::cout<<"CLSUTER:: Cannot cluster cells because the placement is not legal\n";
+        return 1;
+    }
+
+    // MUST pass previous checks and call modify_circuit_since_merge_cell
+
+    const design::Design &design = design::Design::get_instance();    
+    // parent
+    int parent_id = cells_id.at(0);
+    Cell& cell1 = get_mutable_cell(parent_id);
+    
+    for(int i = 1; i < static_cast<int>(cells_id.size()); i++){
+        int cell_id = cells_id.at(i);
+        Cell& cell = get_mutable_cell(cell_id);
+        cell.set_parent(parent_id);
+        remove_sequential_cell(cell_id);
+        remove_cell_from_clk_group(cell_id);
+    }
+    Cell& cell2 = get_mutable_cell(id2);
+
+    // cell1 new location 
+    // TODO: aummption: center of cells_id
+
+    cell1.set_x(new_cell_x);
+    cell1.set_y(new_cell_y);
+
+    // set cell1 to new_lib_cell
+    cell1.set_lib_cell_id(new_lib_cell_id);
+    // change cell1 width and height
+    const design::LibCell &new_lib_cell = design.get_lib_cell(new_lib_cell_id);
+    //std::cout<<"CLUSTER:: new_lib_cell: "<<new_lib_cell.get_name()<<std::endl;
+    cell1.set_w(new_lib_cell.get_width());
+    cell1.set_h(new_lib_cell.get_height());
+    
+    
+    // handle pins mapping    
+    std::vector<int> new_cell_input_pins_id;
+    std::vector<int> new_cell_output_pins_id;
+
+    for(int i = 0; i < static_cast<int>(cells_id.size()); i++){
+        const Cell &cell = get_cell(cells_id.at(i));
+        std::vector<int> cell_input_pins_id = cell.get_input_pins_id();
+        std::vector<int> cell_output_pins_id = cell.get_output_pins_id();        
+        new_cell_input_pins_id.insert(new_cell_input_pins_id.end(), cell_input_pins_id.begin(), cell_input_pins_id.end());   
+        new_cell_output_pins_id.insert(new_cell_output_pins_id.end(), cell_output_pins_id.begin(), cell_output_pins_id.end());        
+    }
+    cell1.set_input_pins_id(new_cell_input_pins_id);
+    cell1.set_output_pins_id(new_cell_output_pins_id);
+
+    // assign new location and owner
+    std::vector<std::pair<double, double>> new_lib_cell_input_pins_position = new_lib_cell.get_input_pins_position();
+    std::vector<std::pair<double, double>> new_lib_cell_output_pins_position = new_lib_cell.get_output_pins_position();    
+    if(new_lib_cell_input_pins_position.size() != new_cell_input_pins_id.size()){
+        std::cout<<"CLSUTER:: new_lib_cell_input_pins_position.size() != new_cell_input_pins_id.size()\n";
+        return 2;
+    }
+    if(new_lib_cell_output_pins_position.size() != new_cell_output_pins_id.size()){
+        std::cout<<"CLSUTER:: new_lib_cell_output_pins_position.size() != new_cell_output_pins_id.size()\n";
+        return 2;
+    }
+
+    int bits = new_lib_cell_input_pins_position.size();
+    for(int i = 0; i < bits; i++){
+        int input_pin_id = new_cell_input_pins_id.at(i);
+        int output_pin_id = new_cell_output_pins_id.at(i);
+        Pin &input_pin = get_mutable_pin(input_pin_id);
+        Pin &output_pin = get_mutable_pin(output_pin_id);
+        input_pin.set_offset_x(new_lib_cell_input_pins_position.at(i).first);
+        input_pin.set_offset_y(new_lib_cell_input_pins_position.at(i).second);
+        input_pin.set_x(new_cell_x + new_lib_cell_input_pins_position.at(i).first);
+        input_pin.set_y(new_cell_y + new_lib_cell_input_pins_position.at(i).second);
+        input_pin.set_cell_id(parent_id); 
+
+        output_pin.set_offset_x(new_lib_cell_output_pins_position.at(i).first);
+        output_pin.set_offset_y(new_lib_cell_output_pins_position.at(i).second);
+        output_pin.set_x(new_cell_x + new_lib_cell_output_pins_position.at(i).first);
+        output_pin.set_y(new_cell_y + new_lib_cell_output_pins_position.at(i).second);
+        output_pin.set_cell_id(parent_id);
+    }        
+    
+    //std::cout<<"CLUSTER:: Clear clusterd cells pins"<<std::endl;
+    for(int i = 1; i < static_cast<int>(cells_id.size()); i++){
+        int cell_id = cells_id.at(i);
+        Cell &cell = get_mutable_cell(cell_id);
+        cell.clear();
+        remove_sequential_cell(cell_id);
+        remove_cell_from_clk_group(cell_id);        
+    }
+
+    //std::cout<<"CLUSTER:: update_timing"<<std::endl;
+    // since other pins are already merged into parent_id, we don't need to update timing for clustered cells
+    timer::Timer &timer = timer::Timer::get_instance();
+    update_timing(parent_id);
 }
 
 
@@ -168,56 +329,6 @@ void Netlist::modify_circuit_since_merge_cell(int id1, int id2, const int new_li
     //std::cout<<"CLUSTER:: update_timing"<<std::endl;
     timer::Timer &timer = timer::Timer::get_instance();
     timer.update_timing(id1);
-}
-
-bool Netlist::check_overlap(){
-    for(int i = 0; i < static_cast<int>(cells.size()); i++){
-        if(cells.at(i).get_parent() != -1){
-                continue;
-        }
-
-        for(int j = i + 1; j < static_cast<int>(cells.size()); j++){
-            if(cells.at(j).get_parent() != -1){
-                continue;
-            }
-            if(cells.at(i).overlap(cells.at(j))){
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool Netlist::check_out_of_die(){
-    const design::Design &design = design::Design::get_instance();
-    std::vector<double> die_boundaries = design.get_die_boundaries();
-    std::cout<<"OUTOFDIE:: die_boundaries: ";
-    for(double boundary: die_boundaries){
-        std::cout<<boundary<<" ";
-    }
-    std::cout<<std::endl;
-
-    for(auto &cell: cells){
-        if(cell.get_parent() != -1){
-            continue;
-        }
-        if(cell.get_x() < die_boundaries.at(0) || cell.get_rx() > die_boundaries.at(2)){
-            print_cell_info(cell);
-            return true;
-        }
-        if(cell.get_y() < die_boundaries.at(1) || cell.get_ry() > die_boundaries.at(3)){
-            print_cell_info(cell);
-            return true;
-        }
-    }
-    return false;
-}
-
-void Netlist::print_cell_info(const Cell &cell){
-    const design::Design &design = design::Design::get_instance();
-    const design::LibCell &lib_cell = design.get_lib_cell(cell.get_lib_cell_id());
-    std::cout<<"Cell: "<<get_cell_name(cell.get_id())<<" LibCell: "<<lib_cell.get_name()<<" x: "<<cell.get_x()<<" y: "<<cell.get_y()<<" rx: "<<cell.get_rx()<<" ry: "<<cell.get_ry()<<std::endl;
-
 }
 
 bool Netlist::decluster_cells(int id){

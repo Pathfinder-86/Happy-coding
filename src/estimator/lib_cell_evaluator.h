@@ -33,9 +33,13 @@ namespace estimator {
                 static FFLibcellCostManager instance;
                 return instance;
             }
+            FFLibcellCostManager(){
+                init();
+            }
             void init(){
                 calculate_cost();
                 sort_by_cost();
+                find_mid_bits_of_lib();
             }
             void calculate_cost();
             void sort_by_cost();
@@ -102,6 +106,10 @@ namespace estimator {
                     return ff_libcells_cost.at(lib_cell_id).get_total_cost();
                 }
             }
+            void find_mid_bits_of_lib();
+            int get_mid_bits_of_lib() const{
+                return mid_bits_of_lib;
+            }
         private:
             std::unordered_map<int,FFLibCellCost> ff_libcells_cost; // lib_cell_id -> cost
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_cost;
@@ -109,7 +117,7 @@ namespace estimator {
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_power_cost;
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_area_cost;
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_timing_cost;
-
+            int mid_bits_of_lib;
     };
 }
 

@@ -29,7 +29,7 @@ void SolutionManager::switch_to_other_solution(const Solution &solution){
     timer::Timer &timer = timer::Timer::get_instance();
     legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
     CostCalculator &cost_calculator = CostCalculator::get_instance();
-    netlist.switch_to_other_solution(solution.get_cells(),solution.get_pins(),solution.get_sequential_cells_id(),solution.get_clk_group_id_to_ff_cell_ids(),solution.get_ff_cell_id_to_clk_group_id());
+    netlist.switch_to_other_solution(solution.get_ff_cells(),solution.get_ff_pins(),solution.get_clk_group_id_to_ff_cell_ids(),solution.get_ff_cell_id_to_clk_group_id());
     legalizer.switch_to_other_solution(solution.get_cell_id_to_site_id_map());    
     timer.switch_to_other_solution(solution.get_timing_nodes());    
     cost_calculator.calculate_cost();

@@ -269,8 +269,7 @@ bool Legalizer::extend_at_site_id(const int root_site_id,std::vector<int> &sites
     return true;
 }
 
-bool Legalizer::try_extend_at_multiple_sites_id(const std::vector<int> &root_sites_id,int x_site_num,int y_site_num,std::vector<int> &ret_sites_id){
-    
+bool Legalizer::try_extend_at_multiple_sites_id(const std::vector<int> &root_sites_id,int x_site_num,int y_site_num,std::vector<int> &ret_sites_id){    
     for(int site_id : root_sites_id){
         const Site &site = sites.at(site_id);
         int x = site.get_x();
@@ -562,6 +561,22 @@ void Legalizer::switch_to_other_solution( const std::unordered_map<int,std::vect
             site_id_to_cell_id_map[site_id] = it.first;
         }        
     }    
+}
+
+bool Legalizer::try_legal_remove_cells_and_add_rect(const std::vector<int> &cell_ids, const std::vector<int> &rect){
+    // keep original cell_id_to_site_id_map
+    // if fail, rollback -> empty_sites_id, site_id_to_cell_id_map
+    for(int cid : cell_ids){
+        for(int site_id : cell_id_to_site_id_map.at(cid)){
+            empty_sites_id.insert(site_id);
+            site_id_to_cell_id_map.erase(site_id);
+        }
+    }    
+
+    std::vector<int> occupied_sites_id =  empty_sites_enough_space(rect[0],rect[1],rect[2],rect[3]);
+
+    
+    return true;
 }
 
 }
