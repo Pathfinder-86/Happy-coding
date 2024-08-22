@@ -26,7 +26,6 @@ int main(int argc,char *argv[]) {
     command::CommandManager& command_manager = command::CommandManager::get_instance();
     if(std::get<bool>(config_manager.get_config_value("runtcl_mode"))) {
         command_manager.read_input_data(input_file);        
-        command_manager.run();
         //command_manager.test_cluster_ff();
         //command_manager.test_decluster_ff();
         command_manager.SA();

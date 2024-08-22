@@ -10,7 +10,6 @@
 namespace command{
 
 void CommandManager::SA() {    
-    
     circuit::Netlist &netlist = circuit::Netlist::get_instance();    
     const runtime::RuntimeManager& runtime = runtime::RuntimeManager::get_instance();        
     estimator::CostCalculator& cost_calculator = estimator::CostCalculator::get_instance();
@@ -20,11 +19,9 @@ void CommandManager::SA() {
     runtime.get_runtime();
 
     // SA
-    const double initial_temperature = 100.0;
     const double cooling_rate = std::get<double>(config_manager.get_config_value("cooling_rate"));
     const int max_iterations = std::get<int>(config_manager.get_config_value("max_iterations"));
 
-    double current_temperature = initial_temperature;
 
     double clustering_rate = std::get<double>(config_manager.get_config_value("clustering_rate"));
     double declustering_rate = std::get<double>(config_manager.get_config_value("declustering_rate"));
@@ -52,14 +49,18 @@ void CommandManager::SA() {
             }
             int first_cell_id = *std::next(ff_cell_ids.begin(), first_idx);
             int second_cell_id = *std::next(ff_cell_ids.begin(), second_idx);
-            
-            bool cluster_success = netlist.cluster_cells(first_cell_id, second_cell_id);
-            if(!cluster_success){
-                std::cout<<"Cluster fail"<<std::endl;
+            std::vector<int> cell_ids = {first_cell_id, second_cell_id};
+            int cluster_res = netlist.cluster_cells(cell_ids);
+            if(cluster_res == 0){
+                std::cout<<"Cluster success"<<std::endl;
+            }else if(cluster_res == -1){
+                std::cout<<"Cluster fail due to legal rollback"<<std::endl;
+                solution_manager.switch_to_current_solution();
                 continue;
             }else{
-                std::cout<<"Cluster cell:"<<first_cell_id<<" and cell:"<<second_cell_id<<std::endl;
-            }            
+                std::cout<<"Cluster fail"<<std::endl;
+                continue;
+            }
         } else {
             // declustering
             // random pick a idx in sequential cells
@@ -70,13 +71,17 @@ void CommandManager::SA() {
             int size = ff_cell_ids.size();
             int idx = rand() % size;
             int cell_id = *std::next(ff_cell_ids.begin(), idx);
-            bool decluster_success = netlist.decluster_cells(cell_id);
-            if(!decluster_success){
-                std::cout<<"Decluster fail"<<std::endl;
+            int decluster_res = netlist.decluster_cells(cell_id);
+            if(decluster_res == 0){
+                std::cout<<"Declustering success"<<std::endl;
+            }else if(decluster_res == -1){
+                std::cout<<"Declustering fail due to legal rollback"<<std::endl;
+                solution_manager.switch_to_current_solution();
                 continue;
             }else{
-                std::cout<<"Decluster cell:"<<cell_id<<std::endl;
-            }            
+                std::cout<<"Declustering fail"<<std::endl;
+                continue;
+            }
         }    
         
         cost_calculator.calculate_cost();
@@ -95,9 +100,7 @@ void CommandManager::SA() {
             }
         } else {
             std::cout<<"New cost is not better than current cost"<<current_cost<<std::endl;
-            double delta = new_cost - current_cost;
-            double probability = 0.025;       
-            std::cout<<"Probability:"<<probability<<std::endl;
+            double probability = 0.011;
             if (rand() % 100 < probability * 100) {
                 solution_manager.keep_current_solution();
                 std::cout<<"Accept new cost even it is worse than current cost"<<std::endl;
@@ -108,9 +111,7 @@ void CommandManager::SA() {
             }
         }
         std::cout<<"SA:: Iteration:"<<iteration<<" END"<<std::endl;
-        std::cout<<"SA:: Current temperature:"<<current_temperature<<std::endl;
         std::cout<<"--------------------------------------------"<<std::endl;
-        current_temperature *= cooling_rate;
         runtime.get_runtime();
         if(runtime.is_timeout()){
             break;
@@ -118,15 +119,12 @@ void CommandManager::SA() {
     }
 
     solution_manager.switch_to_best_solution();
-    bool is_overlap = netlist.check_overlap();
-    bool is_out_of_die = netlist.check_out_of_die();
-    if(!is_overlap && !is_out_of_die){
-        std::cout<<"SA:: Final solution is legal"<<std::endl;
-    }else if(is_overlap){
-        std::cout<<"SA:: Final solution is overlap"<<std::endl;
-    }else{
-        std::cout<<"SA:: Final solution is out of die"<<std::endl;
+
+    bool valid = netlist.check_cells_location();
+    if(!valid){
+        std::cout<<"SA:: Final solution is invalid"<<std::endl;
     }
-    std::cout<<"COMMAND:: test SA END"<<std::endl;    
+    
+    std::cout<<"COMMAND:: test SA END"<<std::endl;
 }
 }

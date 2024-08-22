@@ -6,7 +6,7 @@
 #include "../design/design.h"
 #include "../design/libcell.h"
 #include "../circuit/pin.h"
-#include "../circuit/netlist.h"
+#include "../circuit/original_netlist.h"
 #include "../circuit/net.h"
 #include "../circuit/cell.h"
 #include "../config/config_manager.h"
@@ -17,37 +17,16 @@
 #include "../legalizer/legalizer.h"
 #include "../runtime/runtime.h"
 #include "../estimator/lib_cell_evaluator.h"
+#include "../circuit/original_netlist.h"
 namespace command{
 
 void check_input_data(){
-    const design::Design &design = design::Design::get_instance();
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    for(const auto &cell : netlist.get_cells()){
-        int lib_cell_id = cell.get_lib_cell_id();
-        const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);        
-        if(cell.get_pins_id().size() != lib_cell.get_pins_name().size()){
-            std::cout<<"Cell " + std::to_string(cell.get_id()) + " has wrong number of pins"<<std::endl;
-        }    
-        for(auto pin_id : cell.get_pins_id()){
-            const circuit::Pin &pin = netlist.get_pin(pin_id);
-            if(pin.get_cell_id() != cell.get_id()){
-                std::cout<<"Pin " + std::to_string(pin.get_id()) + " has wrong cell id"<<std::endl;
-            }
-        }
-    }
-    for(const auto &net : netlist.get_nets()){        
-        for(auto pin_id : net.get_pins_id()){
-            const circuit::Pin &pin = netlist.get_pin(pin_id);
-            if(pin.get_net_id() != net.get_id()){
-                std::cout<<"Pin " + std::to_string(pin.get_id()) + " has wrong net id"<<std::endl;
-            }
-        }
-    }
 }
 
 void CommandManager::read_input_data(const std::string &filename) {    
-    std::cout<<"read data from input "<<filename<<std::endl;
+    std::cout<<"PARSE:: read data from input "<<filename<<std::endl;
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
     design::Design &design = design::Design::get_instance();
     timer::Timer &timer = timer::Timer::get_instance();
     legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
@@ -109,11 +88,8 @@ void CommandManager::read_input_data(const std::string &filename) {
                 pin.set_y(y);
                 // 0: input, 1: output, 2: clk,other                
                 pin.set_pin_connection_type(pin_connection_type);
-                netlist.add_pin(pin,name);
+                original_netlist.add_pin(pin,name);
             }
-
-            //std::cout<<"add port finish"<<std::endl;
-
         }else if(token == "FlipFlop"){
             int bits = 0,pin_num = 0;
             std::string name;
@@ -138,14 +114,12 @@ void CommandManager::read_input_data(const std::string &filename) {
             libcell.set_bits(bits);
             design.add_lib_cell(libcell);
             int lib_cell_id = libcell.get_id();
-            design.add_flipflop_id_to_bits_group(bits,lib_cell_id);            
-            //std::cout<<"add FF finish"<<std::endl;            
+            design.add_flipflop_id_to_bits_group(bits,lib_cell_id);        
         }else if(token == "Gate"){
             std::string name;
             int pin_num = 0;
             double width = 0.0, height = 0.0;
             ss >> name >> width >> height >> pin_num;
-            //std::cout<<"Gate "<<name<<" "<<width<<" "<<height<<" "<<pin_num<<std::endl;
             design::LibCell libcell(name,width,height);
 
             for(int i = 0; i < pin_num; i++){
@@ -156,8 +130,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                 libcell.add_pin(pin_name,x,y,2);
             }
             libcell.set_sequential(false);
-            design.add_lib_cell(libcell);
-            //std::cout<<"add Gate finish"<<std::endl;                        
+            design.add_lib_cell(libcell);                
         } else if(token == "NumInstances"){
             int cell_num = 0;
             ss >> cell_num;
@@ -167,8 +140,6 @@ void CommandManager::read_input_data(const std::string &filename) {
                 double x = 0.0;
                 double y = 0.0;
                 ss >> token >> name >> lib_cell_name >> x >> y;
-                //std::cout<<"Instance "<<name<<" "<<lib_cell_name<<" "<<x<<" "<<y<<std::endl;
-
                 // Init cell with libcell information
                 const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_name);                
                 circuit::Cell cell(x,y,lib_cell.get_width(),lib_cell.get_height());      
@@ -181,15 +152,12 @@ void CommandManager::read_input_data(const std::string &filename) {
                     cell.set_sequential(false);
                 }
 
-                // handle pins
-                //std::cout<<"Try get_pins_name"<<std::endl;                
+                // handle pins           
                 const std::vector<std::string> &pins_name = lib_cell.get_pins_name();
                 const std::vector<std::pair<double, double>> &pins_position = lib_cell.get_pins_position();                
                 int pin_size = pins_name.size();                                
-                for(int j = 0; j < pin_size; j++){
-                    
+                for(int j = 0; j < pin_size; j++){                    
                     circuit::Pin pin;
-
                     // set pin position
                     pin.set_x(pins_position.at(j).first + x);                    
                     pin.set_y(pins_position.at(j).second + y);                    
@@ -199,14 +167,16 @@ void CommandManager::read_input_data(const std::string &filename) {
 
                     // set pin connection type
                     // 0: input, 1: output, 2: clk,other
-                    if(lib_cell.is_sequential() == true){
-                        pin.set_ff_pin(true);                      
+                    if(lib_cell.is_sequential() == true){                                         
                         if(pins_name.at(j).at(0) == 'D'){                    
-                            pin.set_pin_connection_type(0);                            
+                            pin.set_pin_connection_type(0);
+                            pin.set_ff_pin(true);               
                         }else if(pins_name.at(j).at(0) == 'Q'){
-                            pin.set_pin_connection_type(1);                            
+                            pin.set_pin_connection_type(1);
+                            pin.set_ff_pin(true);                            
                         }else{
                             pin.set_pin_connection_type(2);                            
+                            pin.set_ff_pin(false);
                         }
                     }else{
                         pin.set_ff_pin(false);
@@ -218,9 +188,7 @@ void CommandManager::read_input_data(const std::string &filename) {
                             pin.set_pin_connection_type(2);
                         }
                     }
-
-                    //std::cout<<"add pin "<<name + "/" + pins_name.at(j)<<std::endl;
-                    netlist.add_pin(pin,name + "/" + pins_name.at(j));
+                    original_netlist.add_pin(pin,name + "/" + pins_name.at(j));
                     int pid = pin.get_id();
                     // set pin_id on cell
                     if(pin.is_input() == true){
@@ -228,20 +196,67 @@ void CommandManager::read_input_data(const std::string &filename) {
                     }else if(pin.is_output() == true){
                         cell.add_output_pin_id(pid);
                     }else{
-                        cell.add_other_pin_id(pid);
+                        cell.set_other_pin_id(pid);
                     }
                 }
 
-                netlist.add_cell(cell,name);
+                original_netlist.add_cell(cell,name);
                 // set cell_id on pin
                 int cell_id = cell.get_id();
                 for(auto pin_id : cell.get_pins_id()){
-                    circuit::Pin &pin = netlist.get_mutable_pin(pin_id);
+                    circuit::Pin &pin = original_netlist.get_mutable_pin(pin_id);
                     pin.set_cell_id(cell_id);
                 }
-            }            
-            netlist.init_all_sequential_cells_id();            
-            //std::cout<<"add NumInstances finish"<<std::endl;
+            }
+            std::cout<<"PARSE:: MAPPING"<<std::endl;
+            // MAPPING 
+            // Add ff cells from original netlist to netlist
+            const std::vector<circuit::Cell> &cells = original_netlist.get_cells();            
+            for(const auto &cell : cells){                
+                if(cell.is_sequential() == true){
+                    circuit::Cell ff_cell = cell;
+                    netlist.add_cell(ff_cell);
+                    int ff_cell_id = ff_cell.get_id();
+                    original_netlist.add_ff_cell_id_to_original_cell_id(ff_cell_id,cell.get_id());                                   
+                }
+            }
+            // MAPPING
+            // Add ff pins from original netlist to netlist
+            const std::vector<circuit::Pin> &pins = original_netlist.get_pins();
+            for(const auto &pin : pins){                
+                if(pin.is_ff_pin() == true){
+                    circuit::Pin ff_pin = pin;
+                    netlist.add_pin(ff_pin);
+                    int ff_pin_id = ff_pin.get_id();                    
+                    original_netlist.add_ff_pin_id_to_original_pin_id(ff_pin_id,pin.get_id());
+                }
+            }
+            // MAPPING
+            // netlist pin change cell_id and sequential_cells_id
+            for(auto &cell : netlist.get_mutable_cells()){
+                int cell_id = cell.get_id();
+                int bits = cell.get_bits();
+                std::vector<int> new_input_pins_id;
+                std::vector<int> new_output_pins_id;
+                new_input_pins_id.reserve(bits);
+                new_output_pins_id.reserve(bits);
+                for(auto pin_id : cell.get_input_pins_id()){
+                    int ff_pin_id = original_netlist.get_ff_pin_id(pin_id);
+                    circuit::Pin &pin = netlist.get_mutable_pin(ff_pin_id);
+                    pin.set_cell_id(cell_id);
+                    new_input_pins_id.push_back(ff_pin_id);                    
+                }
+                for(auto pin_id : cell.get_output_pins_id()){
+                    int ff_pin_id = original_netlist.get_ff_pin_id(pin_id);
+                    circuit::Pin &pin = netlist.get_mutable_pin(ff_pin_id);
+                    pin.set_cell_id(cell_id);
+                    new_output_pins_id.push_back(ff_pin_id);                    
+                }
+                cell.set_input_pins_id(new_input_pins_id);
+                cell.set_output_pins_id(new_output_pins_id);
+                netlist.add_sequential_cell(cell_id);
+            }
+            std::cout<<"PARSE:: MAPPING FINISH"<<std::endl;
         }else if(token == "NumNets"){
 
             int net_num = 0;
@@ -255,15 +270,15 @@ void CommandManager::read_input_data(const std::string &filename) {
                 for(int j = 0; j < pin_num; j++){                    
                     std::string pin_name;
                     ss >> token >> pin_name;                    
-                    int pin_id = netlist.get_pin_id(pin_name);
+                    int pin_id = original_netlist.get_pin_id(pin_name);
                     net.add_pin_id(pin_id);                    
                 }
 
-                // add net to netlist                
-                netlist.add_net(net,name);
+                // add net to original_netlist                
+                original_netlist.add_net(net,name);
                 int net_id = net.get_id();
                 for(auto pin_id : net.get_pins_id()){
-                    circuit::Pin &pin = netlist.get_mutable_pin(pin_id);
+                    circuit::Pin &pin = original_netlist.get_mutable_pin(pin_id);
                     pin.set_net_id(net_id);
                 }
 
@@ -271,23 +286,35 @@ void CommandManager::read_input_data(const std::string &filename) {
                 if(pins_id.size() < 2){
                     continue;
                 }
-                const std::string &pin_name = netlist.get_original_pin_name(pins_id.at(1));
-                if(pin_name.find("CLK") != std::string::npos){
-                    // CLK NET
+                // CLK NET
+                bool is_clk_net = false;
+                for(int i=1;i<pin_num;i++){
+                    int pin_id = net.get_pins_id().at(i);
+                    const std::string &pin_name = original_netlist.get_pin_name(pins_id.at(1));
+                    if(pin_name.find("CLK") != std::string::npos){
+                        is_clk_net = true;
+                        break;
+                    }    
+                }
+                
+                if(is_clk_net == true){
+                    // MAPPING
                     std::unordered_set<int> clk_group;
                     for(int i=1;i<pin_num;i++){
                         int pin_id = net.get_pins_id().at(i);
-                        int cell_id = netlist.get_pin(pin_id).get_cell_id();
-                        if(netlist.is_sequential_cell(cell_id)){
-                            clk_group.insert(cell_id);
+                        const circuit::Pin &pin = original_netlist.get_pin(pin_id);
+                        int cell_id = pin.get_cell_id();
+                        const circuit::Cell &cell = original_netlist.get_cell(cell_id);
+                        if(cell.is_sequential() == true){
+                            int ff_cell_id = original_netlist.get_ff_cell_id(cell_id);
+                            clk_group.insert(ff_cell_id);
                         }
-                    }
-                    if(clk_group.size() > 1){
+                    }                    
+                    if(clk_group.size() > 1){                        
                         netlist.add_clk_group(clk_group);
                     }
                 }
-            }
-            //std::cout<<"add NumNets finish"<<std::endl;            
+            }            
         }else if(token == "BinWidth"){
             double x = 0.0;
             double y = 0.0;
@@ -296,13 +323,11 @@ void CommandManager::read_input_data(const std::string &filename) {
             design.set_bin_size(x,y);
             double bin_max_utilization = 0.0;
             ss >> token >> bin_max_utilization;
-            design.set_bin_max_utilization(bin_max_utilization / 100. );
-            legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
+            design.set_bin_max_utilization(bin_max_utilization / 100. );            
         }else if(token == "PlacementRows"){
             double x,y,site_width,site_height;
             int site_num;
-            ss >> x >> y >> site_width >> site_height >> site_num;
-            //std::cout << "Row " << x << "," << y << " " << site_width << "x" << site_height << " " << site_num << std::endl;
+            ss >> x >> y >> site_width >> site_height >> site_num;            
             legalizer.add_row((int)x,(int)y,(int)site_width,(int)site_height,site_num);
         }else if(token == "DisplacementDelay"){
             double delay = 0.0;
@@ -317,7 +342,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             std::string cell_name, pin_name;
             double slack = 0.0;
             ss >> cell_name >> pin_name >> slack;
-            int pin_id = netlist.get_pin_id(cell_name + "/" + pin_name);            
+            int pin_id = original_netlist.get_pin_id(cell_name + "/" + pin_name);            
             init_pin_slack_map[pin_id] = slack;
 
         }else if(token == "GatePower"){
@@ -355,19 +380,14 @@ void CommandManager::read_input_data(const std::string &filename) {
     std::cout<<"LEGAL:: INIT"<<std::endl;
     // update bins
     legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
-    utilization_calculator.update_bins_utilization();    
+    utilization_calculator.update_bins_utilization();        
+    // check legal
     legalizer.init();
-    if(legalizer.check_on_site()){
-        std::cout<<"LEGAL: All cells are on site"<<std::endl;
+    if(legalizer.valid()){
+        std::cout<<"LEGAL:: FINISH"<<std::endl;
     }else{
-        std::cout<<"LEGAL: Some cells are not on site do legalization"<<std::endl;
-        if( legalizer.legalize()){
-            std::cout<<"LEGAL: legalization success"<<std::endl;
-        }else{
-            std::cout<<"LEGAL: legalization fail"<<std::endl;
-        }
+        std::cout<<"LEGAL:: INIT_LEGAL FAIL may need to cluster to reduce area"<<std::endl;
     }
-    std::cout<<"LEGAL:: FINISH1"<<std::endl;
     runtime_manager.get_runtime();
 
 
@@ -377,27 +397,8 @@ void CommandManager::read_input_data(const std::string &filename) {
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
     solution_manager.keep_init_solution();
 
+    std::cout<<"PARSE:: read_input_data and init FINISH"<<std::endl;
 
-
-
-    const config::ConfigManager &config = config::ConfigManager::get_instance();
-    if(std::get<bool>(config.get_config_value("check_input_data")) == true){
-        check_input_data();
-    }
-    bool is_overlap = netlist.check_overlap();
-    if(is_overlap == true){
-        std::cout<<"OVERLAP:: overlap detected"<<std::endl;
-    }else{
-        std::cout<<"OVERLAP:: no overlap"<<std::endl;
-    }
-    runtime_manager.get_runtime();
-    bool is_out_of_die = netlist.check_out_of_die();
-    if(is_out_of_die == true){
-        std::cout<<"OUTOFDIE:: some cells are out of die"<<std::endl;
-    }else{ 
-        std::cout<<"OUTOFDIE:: all cells are in die"<<std::endl;
-    }
-    runtime_manager.get_runtime();    
 }
 
 

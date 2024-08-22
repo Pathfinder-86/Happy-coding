@@ -68,6 +68,7 @@ class CostCalculator{
         const std::vector<CellCost>& get_adjusted_sequential_cells_cost() const {
             return adjusted_sequential_cells_cost;
         }
+        // sorted ?
     private:
         double timing_cost,power_cost,area_cost,utilization_cost,total_cost;
         std::vector<CellCost> sequential_cells_cost;

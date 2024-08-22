@@ -24,27 +24,27 @@ void CommandManager::test_cluster_ff() {
     int first_cell_id = sequential_cells_cost[0].get_id();
     int second_cell_id = sequential_cells_cost[1].get_id();
     // MSG START
-    const std::string& first_cell_name = netlist.get_cell_name(first_cell_id);
-    const std::string& second_cell_name = netlist.get_cell_name(second_cell_id);
     double first_cell_cost = sequential_cells_cost[0].get_total_cost();
     double second_cell_cost = sequential_cells_cost[1].get_total_cost();
-    std::cout<<"COMMAND:: test cluster_ff:: First cell:"<<first_cell_name<<" cost:"<<first_cell_cost<<" Second cell:"<<second_cell_name<<" cost:"<<second_cell_cost<<std::endl;
+    std::cout<<"COMMAND:: test cluster_ff:: First cell:"<<first_cell_id<<" cost:"<<first_cell_cost<<" Second cell:"<<second_cell_id<<" cost:"<<second_cell_cost<<std::endl;
     // MSG END
-
-    netlist.cluster_cells(first_cell_id,second_cell_id);    
-    // legalize
-    legalizer::Legalizer& legalizer = legalizer::Legalizer::get_instance();
-    if(legalizer.check_on_site()){
-        std::cout<<"LEGAL: All cells are on site"<<std::endl;
-    }else{
-        std::cout<<"LEGAL: Some cells are not on site do legalization"<<std::endl;
-        if( legalizer.legalize()){
-            std::cout<<"LEGAL: legalization success"<<std::endl;
-        }else{
-            std::cout<<"LEGAL: legalization fail"<<std::endl;
-        }
+    std::vector<int> cells_id = {first_cell_id , second_cell_id};
+    int cluster_res = netlist.cluster_cells(cells_id);
+    if(cluster_res == 0){
+        std::cout<<"COMMAND:: test cluster_ff:: Cluster success"<<std::endl;
+    }else if(cluster_res != 1){ 
+        // only legal fail will change circuit       
+        // don't need to rollback solution
+        std::cout<<"COMMAND:: test cluster_ff:: Cluster fail"<<std::endl;
+        return;
     }
-
+    else{
+        std::cout<<"COMMAND:: test cluster_ff:: Cluster fail due to legal fail rollback"<<std::endl;
+        // solution rollback
+        solution_manager.switch_to_other_solution(solution_manager.get_current_solution());
+        return;
+    }
+   
     // update cost
     cost_calculator.calculate_cost();
     double best_cost = solution_manager.get_best_solution().get_cost();    
@@ -55,9 +55,7 @@ void CommandManager::test_cluster_ff() {
         solution_manager.keep_current_solution();
     }else{
         std::cout<<"COMMAND:: test cluster_ff:: New cost:"<<new_cost<<" is not better than best cost:"<<best_cost<<std::endl;
-        //netlist.uncluster_cells(first_cell_id,second_cell_id);
-    }
-    // update solution    
+    }    
     std::cout<<"COMMAND:: test cluster_ff END"<<std::endl;   
     runtime.get_runtime();
 }

@@ -23,35 +23,33 @@ void CommandManager::test_decluster_ff() {
     }
     int first_cell_id = sequential_cells_cost[0].get_id();
     // MSG START
-    const std::string& first_cell_name = netlist.get_cell_name(first_cell_id);    
     double first_cell_cost = sequential_cells_cost[0].get_total_cost();
-    std::cout<<"COMMAND:: test_decluster_ff:: First cell:"<<first_cell_name<<" cost:"<<first_cell_cost<<std::endl;
+    std::cout<<"COMMAND:: test_decluster_ff:: First cell:"<<first_cell_id<<" cost:"<<first_cell_cost<<std::endl;
     // MSG END
 
-    netlist.decluster_cells(first_cell_id);
-    // legalize
-    legalizer::Legalizer& legalizer = legalizer::Legalizer::get_instance();
-    if(legalizer.check_on_site()){
-        std::cout<<"LEGAL: All cells are on site"<<std::endl;
-    }else{
-        std::cout<<"LEGAL: Some cells are not on site do legalization"<<std::endl;
-        if( legalizer.legalize()){
-            std::cout<<"LEGAL: legalization success"<<std::endl;
-        }else{
-            std::cout<<"LEGAL: legalization fail"<<std::endl;
-        }
+    int decluster_result = netlist.decluster_cells(first_cell_id);
+    if(decluster_result == 0){
+        std::cout<<"COMMAND:: test_decluster_ff:: Decluster success"<<std::endl;
+    }else if(decluster_result != 1){ 
+        // only legal fail will change circuit       
+        // don't need to rollback solution
+        return;
+    }
+    else{
+        std::cout<<"COMMAND:: test_decluster_ff:: Decluster due to legal fail"<<std::endl;
+        // solution rollback
+        solution_manager.switch_to_other_solution(solution_manager.get_current_solution());
+        return;
     }
 
     // update cost
     cost_calculator.calculate_cost();
     double best_cost = solution_manager.get_best_solution().get_cost();    
     double new_cost = cost_calculator.get_cost();
-    std::cout<<"COMMAND:: test cluster_ff:: New cost:"<<new_cost<<" is not better than best cost:"<<best_cost<<std::endl;    
+    std::cout<<"COMMAND:: test cluster_ff:: New cost:"<<new_cost<<" best cost:"<<best_cost<<std::endl;    
     solution_manager.keep_best_solution();
-    solution_manager.keep_current_solution();            
-    // update solution    
-    std::cout<<"COMMAND:: test cluster_ff END"<<std::endl;   
-    runtime.get_runtime();
+    solution_manager.keep_current_solution();                
+    std::cout<<"COMMAND:: test cluster_ff END"<<std::endl;       
 }
 
 

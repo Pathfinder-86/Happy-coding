@@ -113,8 +113,7 @@ public:
     }
     // path from q_pin to each d_pin
     void create_timing_graph();
-    void dfs_from_q_pin_to_each_d_pin(int q_pin);
-    int dfs_until_d_pin(int fanin_pid,int pid,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay,const double q_pin_delay);
+    void dfs_from_q_pin_to_each_d_pin(int q_pin);    
     void update_slack_since_cell_move(int cell_id);
     void update_slack_since_libcell_change(int cell_id);
     // banking and debanking

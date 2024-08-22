@@ -9,11 +9,6 @@ void Cell::move(int x, int y){
     this->x = x;
     this->y = y;
     Netlist &netlist =  Netlist::get_instance();
-    for(auto pin_id : get_other_pins_id()){
-        Pin &pin = netlist.get_mutable_pin(pin_id);
-        pin.set_x(pin.get_offset_x() + x);
-        pin.set_y(pin.get_offset_y() + y);
-    }
     for(auto pin_id : get_input_pins_id()){
         Pin &pin = netlist.get_mutable_pin(pin_id);
         pin.set_x(pin.get_offset_x() + x);
@@ -41,18 +36,11 @@ double Cell::get_power() const {
 }
 
 void Cell::calculate_slack(){
-    timer::Timer &timer = timer::Timer::get_instance();
-    circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    if(is_sequential() == false){
-        set_slack(0.0);
-        return;
-    }
+    timer::Timer &timer = timer::Timer::get_instance();    
     double worst_slack = 0.0;
     for(int pid : input_pins_id){
         worst_slack = std::min(worst_slack,timer.get_slack(pid));
     }
-    const std::string &cell_name = netlist.get_cell_name(id);
-    //std::cout<<"cell: "<<cell_name<<" worst_slack: "<<worst_slack<<std::endl;
     set_slack(worst_slack);
 }
 

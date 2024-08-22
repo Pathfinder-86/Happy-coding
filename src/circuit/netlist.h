@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <pin.h>
 #include <cell.h>
-#include <net.h>
 #include <stdexcept>
 #include <unordered_set>
 namespace circuit {
@@ -19,35 +18,23 @@ public:
         return instance;
     }
 public:
-    void add_cell(Cell& cell,const std::string& name) {
+    void add_cell(Cell& cell) {
         int id = cells.size();
         cell.set_id(id);
         cells.push_back(cell);
-        cell_id_map[name] = id;
-        cell_names.push_back(name); 
     }
 
-    void add_pin(Pin& pin,const std::string& name) {
+    void add_pin(Pin& pin) {
         int id = pins.size();
         pin.set_id(id);
         pins.push_back(pin);
-        pin_id_map[name] = id;
-        original_pin_names.push_back(name);
-    }
-
-    void add_net(Net& net,const std::string& name) {
-        int id = nets.size();
-        net.set_id(id);
-        nets.push_back(net);
-        net_id_map[name] = id;
-        net_names.push_back(name);
     }
 
     const Cell& get_cell(int id) const {
         if (id >= 0 && id < static_cast<int>(cells.size())) {
             return cells[id];
         } else {
-            throw std::out_of_range("Invalid cell ID");
+            throw std::out_of_range("Invalid const cell ID" + std::to_string(id));
         }
     }
 
@@ -55,7 +42,7 @@ public:
         if (id >= 0 && id < static_cast<int>(cells.size())) {
             return cells[id];
         } else {
-            throw std::out_of_range("Invalid cell ID");
+            throw std::out_of_range("Invalid mutable cell ID " + std::to_string(id));
         }
     }
 
@@ -63,7 +50,7 @@ public:
         if (id >= 0 && id < static_cast<int>(pins.size())) {
             return pins.at(id);
         } else {
-            throw std::out_of_range("Invalid pin ID");
+            throw std::out_of_range("Invalid const pin ID" + std::to_string(id));
         }
     }
 
@@ -71,111 +58,32 @@ public:
         if (id >= 0 && id < static_cast<int>(pins.size())) {
             return pins.at(id);
         } else {
-            throw std::out_of_range("Invalid pin ID");
+            throw std::out_of_range("Invalid mutable pin ID" + std::to_string(id));
         }
     }
-
-    const Net& get_net(int id) const {
-        if (id >= 0 && id < static_cast<int>(nets.size())) {
-            return nets.at(id);
-        } else {
-            throw std::out_of_range("Invalid net ID :" + std::to_string(id));
-        }
-    }
-
     const std::vector<Cell>& get_cells() const {
+        return cells;
+    }
+    std::vector<Cell>& get_mutable_cells() {
         return cells;
     }
 
     const std::vector<Pin>& get_pins() const {
         return pins;
     }
-
-    const std::vector<Net>& get_nets() const {
-        return nets;
-    }
-    std::vector<Cell> &get_mutable_cells() {
-        return cells;
-    }
-    std::vector<Pin> &get_mutable_pins() {
-        return pins;
-    }
-    std::vector<Net> &get_mutable_nets() {
-        return nets;
-    }
-
-    int get_cell_id(const std::string& name) const {
-        if (cell_id_map.count(name) > 0) {
-            return cell_id_map.at(name);
-        } else {
-            std::cout<<"Cell name not found:" + name<<std::endl;
-            return -1;
-        }
-    }
-    int get_pin_id(const std::string& name) const {
-        if (pin_id_map.count(name) > 0) {
-            return pin_id_map.at(name);
-        } else {            
-            std::cout<<"Pin name not found:" + name<<std::endl;
-            return -1;
-        }
-    }
-    int get_net_id(const std::string& name) const {
-        if (net_id_map.count(name) > 0) {
-            return net_id_map.at(name);
-        } else {
-            std::cout<<"Net name not found:" + name<<std::endl;
-            return -1;
-        }
-    }
-    const std::string& get_cell_name(int id) const {
-        if (id >= 0 && id < static_cast<int>(cell_names.size())) {
-            return cell_names.at(id);
-        } else {
-            throw std::out_of_range("Invalid cell ID:" + std::to_string(id));
-        }
-    }
-    const std::string& get_net_name(int id) const {
-        if (id >= 0 && id < static_cast<int>(net_names.size())) {
-            return net_names.at(id);
-        } else {
-            throw std::out_of_range("Invalid net ID:" + std::to_string(id));
-        }
-    }
-    const std::vector<std::string>& get_cell_names() const {
-        return cell_names;
-    }
-    const std::vector<std::string>& get_net_names() const {
-        return net_names;
-    }
-    const std::vector<std::string>& get_original_pin_names() const {
-        return original_pin_names;
-    }
-    const std::string &get_original_pin_name(int id) const {
-        if (id >= 0 && id < static_cast<int>(original_pin_names.size())) {
-            return original_pin_names.at(id);
-        } else {
-            throw std::out_of_range("Invalid pin ID:" + std::to_string(id));
-        }
-    }
     int cells_size() const { return cells.size(); }
     int pins_size() const { return pins.size(); }
-    int nets_size() const { return nets.size(); }
+    
     // libcell mapping
-    void modify_circuit_since_merge_cell(int c1,int c2,const int new_lib_cell_id);
-    void modify_circuit_since_divide_cell(int c,const int new_lib_cell_id1,const int new_lib_cell_id2);
+    // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
+    int try_legal_and_modify_circuit_since_merge_cell(const std::vector<int> &cells_id,const int new_lib_cell_id);
+    int modify_circuit_since_divide_cell(int c,const int new_lib_cell_id1,const int new_lib_cell_id2);
 
-    bool cluster_cells(int c1, int c2); 
-    bool decluster_cells(int cid);
-    // sequential cells
-    void init_all_sequential_cells_id(){
-        sequential_cells_id.clear();
-        for(auto &cell: cells){
-            if(cell.is_sequential() && cell.is_clustered() == false){
-                sequential_cells_id.insert(cell.get_id());
-            }
-        }
-    }
+    // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
+    int cluster_cells(const std::vector<int> &cell_ids); 
+    // return 0: success , return 1: legalize fail, return 2: no ff target to decluster,return 3: no ff for decluster, return 4: others
+    int decluster_cells(int cid);    
+
     bool is_sequential_cell(int cell_id){
         return sequential_cells_id.find(cell_id) != sequential_cells_id.end();
     }
@@ -191,18 +99,13 @@ public:
     void add_sequential_cell(int cell_id){
         sequential_cells_id.insert(cell_id);
     }
-    // check
-    bool check_overlap();
-    bool check_out_of_die();
-    // print msg
-    void print_cell_info(const circuit::Cell &cell);
     // set_cells 
-    void switch_to_other_solution(const std::vector<Cell> &cells, const std::vector<Pin> &pins, const std::unordered_set<int> &sequential_cells_id,const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids,const std::unordered_map<int,int> &ff_cell_id_to_clk_group_id){
+    void switch_to_other_solution(const std::vector<Cell> &cells, const std::unordered_set<int> &sequential_cells_id,const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids,const std::unordered_map<int,int> &ff_cell_id_to_clk_group_id){
         set_cells(cells);
-        set_pins(pins);
+        reassign_pins_cell_id();
         set_sequential_cells_id(sequential_cells_id);
         set_clk_group_id_to_ff_cell_ids(clk_group_id_to_ff_cell_ids);
-        set_ff_cell_id_to_clk_group_id(ff_cell_id_to_clk_group_id);
+        set_ff_cell_id_to_clk_group_id(ff_cell_id_to_clk_group_id);        
     }
     void set_cells(const std::vector<Cell> &cells){
         this->cells = cells;
@@ -225,7 +128,7 @@ public:
         clk_group_id_to_ff_cell_ids[clk_group_id] = clk_group;
         for(auto cell_id : clk_group){
             ff_cell_id_to_clk_group_id[cell_id] = clk_group_id;
-        }  
+        }
     }
     int get_clk_group_id(int cell_id){
         if(ff_cell_id_to_clk_group_id.count(cell_id)){
@@ -234,7 +137,7 @@ public:
             return -1;
         }
     }
-    void remove_cell_from_clk_group(int cell_id){
+    void remove_cell_from_clk_group(int cell_id){               
         if(ff_cell_id_to_clk_group_id.count(cell_id)){
             int clk_group_id = ff_cell_id_to_clk_group_id[cell_id];
             ff_cell_id_to_clk_group_id.erase(cell_id);
@@ -251,22 +154,13 @@ public:
     const std::unordered_map<int,int> &get_ff_cell_id_to_clk_group_id() const{
         return ff_cell_id_to_clk_group_id;
     }
+    bool check_cells_location();
+    void reassign_pins_cell_id();
 private:
-    std::vector<Cell> cells;
-    std::vector<Net> nets; // const
-    std::vector<Pin> pins;
-
-    // name
-    std::unordered_map<std::string, int> cell_id_map;  // const
-    std::unordered_map<std::string, int> net_id_map;  // const
-    std::unordered_map<std::string, int> pin_id_map;  // const
-    std::vector<std::string> cell_names; // const
-    std::vector<std::string> net_names;  // const
-    // for mapping
-    std::vector<std::string> original_pin_names; // const
     // sequential cells
-    std::unordered_set<int> sequential_cells_id;
-
+    std::vector<Pin> pins;
+    std::vector<Cell> cells;
+    std::unordered_set<int> sequential_cells_id;    
     // clk groups
     std::unordered_map<int,std::unordered_set<int>> clk_group_id_to_ff_cell_ids;
     std::unordered_map<int,int> ff_cell_id_to_clk_group_id;

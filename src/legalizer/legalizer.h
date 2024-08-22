@@ -94,6 +94,7 @@ class Legalizer{
             }
         }
         void init();
+        void check_init_placement_is_on_site();// ?
         bool check_on_site();
         bool legalize();
         void init_blockage();
@@ -103,11 +104,10 @@ class Legalizer{
         void move_unavailable_cells_to_empty_sites_sort_by_slack();
         void print_empty_sites() const;        
         int nearest_empty_site(int x, int y) const;
-        int nearest_empty_site_in_window_using_binary_search(int x, int y) const;
         std::vector<int> nearest_empty_site_enough_space(int x, int y, int rx, int ry);        
         std::vector<int> empty_sites_enough_space(int x, int y, int rx, int ry);
         bool extend_at_site_id(const int, std::vector<int> &sites_id,int x_site_num,int y_site_num);
-        bool legalize_success() const{
+        bool valid() const{
             return not_on_site_cells_id.empty();
         }
         std::vector<int> distance_order_empty_sites(int x, int y);
@@ -129,23 +129,23 @@ class Legalizer{
         void switch_to_other_solution(const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map);
         const std::unordered_map<int,std::vector<int>>& get_cell_id_to_site_id_map() const{
             return cell_id_to_site_id_map;
-        }
+        }        
 
     private:   
         std::vector<Row> rows; // const 
         std::unordered_map<int,std::vector<int>> row_id_to_sites_id_map; //const
         
         // quick site access, check
-        std::vector<Site> sites; 
+        std::vector<Site> sites; // const
         std::unordered_map<int,std::pair<int,int>> sites_id_to_xy_map; // const 
         std::map<std::pair<int,int>,int> sites_xy_to_id_map; // const
-        std::unordered_set<int> empty_sites_id; // changable
+        std::unordered_set<int> empty_sites_id; // accoring to netlist
 
         // site cell relation
-        std::unordered_set<int> not_on_site_cells_id;
-        std::unordered_map<int,int> site_id_to_cell_id_map;
+        std::unordered_set<int> not_on_site_cells_id; // accoring to netlist
+        std::unordered_map<int,int> site_id_to_cell_id_map; // accoring to netlist
         // SOLUTION:
-        std::unordered_map<int,std::vector<int>> cell_id_to_site_id_map;
+        std::unordered_map<int,std::vector<int>> cell_id_to_site_id_map; // accoring to netlist
 
         int site_width, site_height;
         bool available;

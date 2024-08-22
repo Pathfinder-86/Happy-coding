@@ -23,7 +23,7 @@ public:
     void set_offset_y(double offset_y) { this->offset_y = offset_y; }
 
     // is_ff_pin
-    bool is_ff_pin() { return ff_pin; }
+    bool is_ff_pin() const { return ff_pin; }
     void set_ff_pin(bool ff_pin) { this->ff_pin = ff_pin; }
     
     bool is_d_pin() const { return is_input() && ff_pin; }

@@ -4,30 +4,28 @@
 #include <vector>
 #include "../circuit/cell.h"
 #include "../timer/timer.h"
-#include "../circuit/pin.h"
 #include "../legalizer/legalizer.h"
 #include "cost.h"
 #include <unordered_set>
+#include "../circuit/netlist.h"
 #include <unordered_map>
 namespace estimator {    
     class Solution{
         public:
             Solution():cost(0.0){}
-            Solution(double cost,const std::vector<circuit::Cell> &cells,const std::vector<circuit::Pin> &pins,const std::unordered_map<int,timer::TimingNode> &timing_nodes,const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map):cost(cost),cells(cells),pins(pins),timing_nodes(timing_nodes),cell_id_to_site_id_map(cell_id_to_site_id_map){}
+            Solution(double cost,const std::vector<circuit::Cell> &cells,const std::unordered_map<int,timer::TimingNode> &timing_nodes,const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map):cost(cost),cells(cells),timing_nodes(timing_nodes),cell_id_to_site_id_map(cell_id_to_site_id_map){}
             bool is_available() const{
                 return !cells.empty();
             }       
             void update_cost(double cost){
                 this->cost = cost;
             }
-            void update_netlist(const std::vector<circuit::Cell> &cells,const std::vector<circuit::Pin> &pins,const std::unordered_set<int> &sequential_cells_id){
+            void update_netlist(const std::vector<circuit::Cell> &cells,const std::unordered_set<int> &sequential_cells_id){
                 this->cells = cells;
-                this->pins = pins;
                 this->sequential_cells_id = sequential_cells_id;                
             }
             void update_netlist(const circuit::Netlist &netlist){
                 this->cells = netlist.get_cells();
-                this->pins = netlist.get_pins();
                 this->sequential_cells_id = netlist.get_sequential_cells_id();
                 this->clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();
                 this->ff_cell_id_to_clk_group_id = netlist.get_ff_cell_id_to_clk_group_id();
@@ -44,10 +42,9 @@ namespace estimator {
             void update_legalizer(const legalizer::Legalizer &legalizer){
                 this->cell_id_to_site_id_map = legalizer.get_cell_id_to_site_id_map();
             }
-            void update(double cost,const std::vector<circuit::Cell> &cells, const std::vector<circuit::Pin> &pins,const std::unordered_set<int> sequentail_cells_id,const std::unordered_map<int,timer::TimingNode> &timing_nodes, const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map){
+            void update(double cost,const std::vector<circuit::Cell> &cells, const std::unordered_set<int> sequentail_cells_id,const std::unordered_map<int,timer::TimingNode> &timing_nodes, const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map){
                 this->cost = cost;
                 this->cells = cells;
-                this->pins = pins;
                 this->sequential_cells_id = sequentail_cells_id;
                 this->timing_nodes = timing_nodes;
                 this->cell_id_to_site_id_map = cell_id_to_site_id_map;                
@@ -55,7 +52,6 @@ namespace estimator {
             void update(const CostCalculator &cost_calculator, const circuit::Netlist &netlist, const timer::Timer &timer, const legalizer::Legalizer &legalizer){
                 this->cost = cost_calculator.get_cost();
                 this->cells = netlist.get_cells();
-                this->pins = netlist.get_pins();
                 this->sequential_cells_id = netlist.get_sequential_cells_id();
                 this->timing_nodes = timer.get_timing_nodes();
                 this->cell_id_to_site_id_map = legalizer.get_cell_id_to_site_id_map();
@@ -65,9 +61,6 @@ namespace estimator {
             }   
             const std::vector<circuit::Cell>& get_cells() const{
                 return cells;
-            }
-            const std::vector<circuit::Pin>& get_pins() const{
-                return pins;
             }
             const std::unordered_set<int>& get_sequential_cells_id() const{
                 return sequential_cells_id;
@@ -87,8 +80,7 @@ namespace estimator {
         private:
             double cost;
             // netlist
-            std::vector<circuit::Cell> cells;
-            std::vector<circuit::Pin> pins;
+            std::vector<circuit::Cell> cells;   
             std::unordered_set<int> sequential_cells_id;
             // clk groups
             std::unordered_map<int,std::unordered_set<int>> clk_group_id_to_ff_cell_ids;
@@ -133,8 +125,8 @@ namespace estimator {
             void keep_solution(int which_solution);
             void keep_init_solution(){
                 keep_solution(0);
-                keep_current_solution();
-                keep_best_solution();
+                keep_solution(1);
+                keep_solution(2);
             };
             void keep_best_solution(){
                 keep_solution(2);

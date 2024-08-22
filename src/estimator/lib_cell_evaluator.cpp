@@ -58,5 +58,14 @@ void FFLibcellCostManager::sort_by_cost(){
     }
 }
 
+int FFLibcellCostManager::find_mid_bits_of_lib(){
+    std::vector<int> bits;
+    bits.reserve(bits_ff_libcells_cost.size());
+    for(auto& it : bits_ff_libcells_cost){
+        bits.push_back(it.first);
+    }
+    std::sort(bits.begin(),bits.end());
+    this->mid_bits_of_lib = bits[bits.size()/2];
+}
 
 }
