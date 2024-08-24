@@ -34,6 +34,7 @@ public:
     bool is_other() const { return pin_connection_type != 0 && pin_connection_type != 1; } // clk or other
     void set_pin_connection_type(int pin_connection_type) { this->pin_connection_type = pin_connection_type; }
     
+    bool no_connection() const { return net_id == -1; }
 
 private:
     // netlist information

@@ -52,7 +52,7 @@ void Cell::calculate_slack(){
         worst_slack = std::min(worst_slack,timer.get_slack(pid));
     }
     const std::string &cell_name = netlist.get_cell_name(id);
-    std::cout<<"cell: "<<cell_name<<" worst_slack: "<<worst_slack<<std::endl;
+    //std::cout<<"cell: "<<cell_name<<" worst_slack: "<<worst_slack<<std::endl;
     set_slack(worst_slack);
 }
 

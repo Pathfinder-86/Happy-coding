@@ -1,1 +1,0 @@
-./executable data/testcase/input.txt res/testcase/output.txt -f runtcl > log

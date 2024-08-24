@@ -94,15 +94,13 @@ class Legalizer{
             }
         }
         void init();
-        void reset(){
-            //rows = init_rows;
-            sites = init_sites;
-        }
         bool check_on_site();
         bool legalize();
         void init_blockage();
         void place_available_cells_on_empty_sites();
+        void place_available_cells_on_empty_sites_sort_by_slack();
         void move_unavailable_cells_to_empty_sites();
+        void move_unavailable_cells_to_empty_sites_sort_by_slack();
         void print_empty_sites() const;        
         int nearest_empty_site(int x, int y) const;
         int nearest_empty_site_in_window_using_binary_search(int x, int y) const;
@@ -124,21 +122,31 @@ class Legalizer{
         int get_site_height() const{
             return site_height;
         }
+        void remove_cell(int cell_id);
+        void replacement_cell(int cell_id);
+        void add_cell(int cell_id);
+        
+        void switch_to_other_solution(const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map);
+        const std::unordered_map<int,std::vector<int>>& get_cell_id_to_site_id_map() const{
+            return cell_id_to_site_id_map;
+        }
+        bool try_legal_remove_cells_and_add_rect(const std::vector<int> &cell_ids, const std::vector<int> &rect);
+
     private:   
         std::vector<Row> rows; // const 
         std::unordered_map<int,std::vector<int>> row_id_to_sites_id_map; //const
-
-        std::vector<Site> init_sites;
+        
         // quick site access, check
-        std::vector<Site> sites;   
-        std::unordered_map<int,std::pair<int,int>> sites_id_to_xy_map;
-        std::map<std::pair<int,int>,int> sites_xy_to_id_map;
-        std::unordered_set<int> empty_sites_id;
+        std::vector<Site> sites; 
+        std::unordered_map<int,std::pair<int,int>> sites_id_to_xy_map; // const 
+        std::map<std::pair<int,int>,int> sites_xy_to_id_map; // const
+        std::unordered_set<int> empty_sites_id; // changable
 
         // site cell relation
         std::unordered_set<int> not_on_site_cells_id;
         std::unordered_map<int,int> site_id_to_cell_id_map;
-        std::unordered_map<int,std::unordered_set<int>> cell_id_to_site_id_map;
+        // SOLUTION:
+        std::unordered_map<int,std::vector<int>> cell_id_to_site_id_map;
 
         int site_width, site_height;
         bool available;

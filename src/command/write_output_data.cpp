@@ -52,15 +52,34 @@ void CommandManager::write_output_data(const std::string &filename) {
         if(cell.is_sequential()== false){
             continue;
         }
-        int parent = cell.get_parent();
-        if(parent != -1){
+        if(cell.is_clustered()){
             continue;
         }
-        const std::vector<int> &pins_id = cell.get_pins_id();
-        for(int pin_id : pins_id){            
-            const std::string &original_pin_name = original_pin_names.at(pin_id);
-            const std::string &mapping_pin_name = netlist.get_pin_name(pin_id);
+        int cell_id = cell.get_id();
+        const std::string &cell_name = netlist.get_cell_name(cell_id);
+        int lib_cell_id = cell.get_lib_cell_id();
+        const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
+        const std::vector<int> &cells_input_pins_id = cell.get_input_pins_id();
+        const std::vector<std::string> &input_pins_name = lib_cell.get_input_pins_name();
+        for(int i = 0; i < static_cast<int>(cells_input_pins_id.size()); i++){
+            const std::string &original_pin_name = original_pin_names.at(cells_input_pins_id.at(i));
+            const std::string &mapping_pin_name = cell_name + "/" + input_pins_name.at(i);
             file<<original_pin_name<<" map "<<mapping_pin_name<<std::endl;
+        }
+        const std::vector<int> &cells_output_pins_id = cell.get_output_pins_id();
+        const std::vector<std::string> &output_pins_name = lib_cell.get_output_pins_name();
+        for(int i = 0; i < static_cast<int>(cells_output_pins_id.size()); i++){
+            const std::string &original_pin_name = original_pin_names.at(cells_output_pins_id.at(i));
+            const std::string &mapping_pin_name = cell_name + "/" + output_pins_name.at(i);
+            file<<original_pin_name<<" map "<<mapping_pin_name<<std::endl;
+        }
+        const std::vector<int> &cells_other_pins_id = cell.get_other_pins_id();
+        const std::vector<std::string> &other_pins_name = lib_cell.get_other_pins_name();
+        const std::string &other_pin_name = other_pins_name.at(0);
+        for(int pin_id : cells_other_pins_id){
+            const std::string &original_pin_name = original_pin_names.at(pin_id);
+            const std::string &mapping_pin_name = cell_name + "/" + other_pin_name;
+            file<<original_pin_name<<" map "<<mapping_pin_name<<std::endl;            
         }
     }
     file.close();

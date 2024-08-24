@@ -19,29 +19,30 @@ int main(int argc,char *argv[]) {
         input_file = std::string(argv[1]);
         output_file = std::string(argv[2]);
     } else {
-        std::cout << "Run testcase" << std::endl;
-        input_file = "data/testcase/input.txt";
-        output_file = "res/testcase/output.txt";
+        std::cerr << "Usage: ./executable input_file output_file" << std::endl;
+        return 1;
     }
+
     command::CommandManager& command_manager = command::CommandManager::get_instance();
     if(std::get<bool>(config_manager.get_config_value("runtcl_mode"))) {
         command_manager.read_input_data(input_file);        
         command_manager.run();
-        command_manager.test_cluster_ff();
-        command_manager.write_output_data(output_file); 
-        command_manager.write_output_data_from_best_solution("res/testcase/output_best.txt");
-        if(std::get<bool>(config_manager.get_config_value("plot_mode"))) {                                    
+        //command_manager.test_cluster_ff();
+        //command_manager.test_decluster_ff();
+        command_manager.SA();
+        //command_manager.write_output_data(output_file);
+        if(std::get<bool>(config_manager.get_config_value("run_tiny"))) {
+            command_manager.write_output_data_from_best_solution(output_file);
+            command_manager.write_output_layout_data("plot/tiny/layout.txt");
+            command_manager.write_output_utilization_data("plot/tiny/utilization.txt");
+        }else{
+            command_manager.write_output_data_from_best_solution(output_file);
             command_manager.write_output_layout_data("plot/testcase/layout.txt");
             command_manager.write_output_utilization_data("plot/testcase/utilization.txt");
         }
+
     }else{
-        command_manager.read_input_data(input_file);
-        command_manager.run();
-        command_manager.write_output_data(output_file);        
-        if(std::get<bool>(config_manager.get_config_value("plot_mode"))) {                                    
-            command_manager.write_output_layout_data("plot/testcase/layout.txt");
-            command_manager.write_output_utilization_data("plot/testcase/utilization.txt");
-        }
+        // CONTEST MODE
     }
 
     

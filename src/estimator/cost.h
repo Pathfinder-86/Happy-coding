@@ -59,13 +59,19 @@ class CostCalculator{
             area_cost = 0.0;
             utilization_cost = 0.0;
             total_cost = 0.0;
+            sequential_cells_cost.clear();
+            adjusted_sequential_cells_cost.clear();
         } 
         const std::vector<CellCost>& get_sequential_cells_cost() const {
             return sequential_cells_cost;
         }
+        const std::vector<CellCost>& get_adjusted_sequential_cells_cost() const {
+            return adjusted_sequential_cells_cost;
+        }
     private:
         double timing_cost,power_cost,area_cost,utilization_cost,total_cost;
         std::vector<CellCost> sequential_cells_cost;
+        std::vector<CellCost> adjusted_sequential_cells_cost;
 };
 }
 // namespace estimator
