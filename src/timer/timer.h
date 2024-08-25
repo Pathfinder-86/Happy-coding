@@ -48,8 +48,14 @@ class TimingNode{
         void set_q_pin_output_pin_location(const std::pair<int,int> &q_pin_output_pin_location){
             this->q_pin_output_pin_location = q_pin_output_pin_location;
         }
+        const std::pair<int,int>& get_q_pin_output_pin_location() const{
+            return q_pin_output_pin_location;
+        }
         void set_d_pin_input_pin_location(const std::pair<int,int> &d_pin_input_pin_location){
             this->d_pin_input_pin_location = d_pin_input_pin_location;
+        }
+        const std::pair<int,int>& get_d_pin_input_pin_location() const{
+            return d_pin_input_pin_location;
         }
 
         // itself
@@ -63,6 +69,10 @@ class TimingNode{
 
         void add_affected_d_pin(int d_pin_id){
             affected_d_pins.insert(d_pin_id);
+        }
+
+        const std::unordered_set<int>& get_affected_d_pins() const{
+            return affected_d_pins;
         }
 
     private:
@@ -112,7 +122,7 @@ public:
         }
     }
     // path from q_pin to each d_pin
-    void create_timing_graph();
+    void create_timing_graph(bool read_data = false);
     void dfs_from_q_pin_to_each_d_pin(int q_pin);    
     void update_slack_since_cell_move(int cell_id);
     void update_slack_since_libcell_change(int cell_id);
@@ -132,6 +142,8 @@ public:
     const std::unordered_map<int,TimingNode>& get_timing_nodes() const{
         return timing_nodes;
     }
+    void write_init_timing_data();
+    void create_timing_graph_by_read_data();
 private:
     // slack on each node
     std::unordered_map<int,TimingNode> timing_nodes;    

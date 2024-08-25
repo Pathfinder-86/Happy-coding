@@ -2,5 +2,4 @@ Die 0 0 50 30
 RowHeight 10
 Inst GATE3 other 10 10 15 20
 Inst FF0 FF 20 0 25 10
-Inst FF1 FF 20 10 25 20
-Inst FF2 FF 20 20 25 30
+Inst FF1 FF 20 20 28 30

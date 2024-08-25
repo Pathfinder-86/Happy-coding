@@ -1,3 +1,0 @@
-./executable data/testcase/testcase1_0812.txt res/testcase/output1_large.txt -f runtcl_large > log1_large
-./sanity_20240801 data/testcase/testcase1_0812.txt res/testcase/output1_large.txt >> log1_large
-./preliminary-evaluator data/testcase/testcase1_0812.txt res/testcase/output1_large.txt >> log1_large

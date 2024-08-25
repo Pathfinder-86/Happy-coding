@@ -24,7 +24,7 @@ int main(int argc,char *argv[]) {
     }
 
     command::CommandManager& command_manager = command::CommandManager::get_instance();
-    if(std::get<bool>(config_manager.get_config_value("runtcl_mode"))) {
+    if(std::get<bool>(config_manager.get_config_value("testing_mode"))) {
         command_manager.read_input_data(input_file);        
         //command_manager.test_cluster_ff();
         //command_manager.test_decluster_ff();
@@ -41,7 +41,10 @@ int main(int argc,char *argv[]) {
         }
 
     }else{
-        // CONTEST MODE
+        // Contest mode
+        command_manager.read_input_data(input_file);        
+        command_manager.SA();        
+        command_manager.write_output_data_from_best_solution(output_file);
     }
 
     

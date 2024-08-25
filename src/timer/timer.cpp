@@ -9,7 +9,41 @@
 #include <../circuit/cell.h>
 #include <../circuit/pin.h>
 #include <../circuit/net.h>
+#include <fstream>
+#include <../config/config_manager.h>
+#include <sstream>
 namespace timer {
+
+void Timer::write_init_timing_data(){
+    const config::ConfigManager &config_manager = config::ConfigManager::get_instance();
+    int write_case = std::get<int>(config_manager.get_config_value("timer_case"));
+    std::string write_case_str;
+    std::string pre_fix = "timer_init/";
+    if(write_case == 0){
+        write_case_str = "timer_input.txt";
+    }else if(write_case == 1){
+        write_case_str = "timer_testcase1_0812.txt";
+    }else if(write_case == 2){
+        write_case_str = "timer_testcase2_0812.txt";
+    }
+    std::ofstream file(write_case_str);
+    for(auto& [id,timing_node] : timing_nodes){
+        double q_pin_delay = timing_node.get_q_pin_delay();
+        double q_pin_output_pin_placement_delay = timing_node.get_q_pin_output_pin_placement_delay();
+        double input_pin_d_pin_placement_delay = timing_node.get_input_pin_d_pin_placement_delay();
+        std::unordered_set<int> affected_d_pins = timing_node.get_affected_d_pins();
+        std::pair<int,int> q_pin_output_pin_location = timing_node.get_q_pin_output_pin_location();
+        std::pair<int,int> d_pin_input_pin_location = timing_node.get_d_pin_input_pin_location();
+        double slack = timing_node.get_slack();
+        file << id << " " << q_pin_delay << " " << q_pin_output_pin_placement_delay << " " << input_pin_d_pin_placement_delay << " " << slack << " " << q_pin_output_pin_location.first << " " << q_pin_output_pin_location.second << " " << d_pin_input_pin_location.first << " " << d_pin_input_pin_location.second << " ";
+        int size = affected_d_pins.size();
+        file << size << " ";        
+        for(int affected_d_pin : affected_d_pins){
+            file << affected_d_pin << " ";
+        }
+        file << std::endl;
+    }
+}
 
 void TimingNode::update_slack_since_cell_move(){
     // if cell movable
@@ -164,8 +198,54 @@ std::vector<int> Timer::dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin
     return affected_d_pins;
 }
 
+void Timer::create_timing_graph_by_read_data(){
+    const config::ConfigManager &config_manager = config::ConfigManager::get_instance();
+    int read_case = std::get<int>(config_manager.get_config_value("timer_case"));
+    std::string read_case_str;
+    if(read_case == 0){
+        read_case_str = "timer_input.txt";
+    }else if(read_case == 1){
+        read_case_str = "timer_testcase1_0812.txt";
+    }else if(read_case == 2){
+        read_case_str = "timer_testcase2_0812.txt";
+    }
+    std::ifstream file(read_case_str);
+    std::string line;
+    while(std::getline(file,line)){
+        std::istringstream iss(line);
+        int id;
+        double q_pin_delay;
+        double q_pin_output_pin_placement_delay;
+        double input_pin_d_pin_placement_delay;
+        double slack;
+        int q_pin_output_pin_x;
+        int q_pin_output_pin_y;
+        int d_pin_input_pin_x;
+        int d_pin_input_pin_y;
+        int size;
+        iss >> id >> q_pin_delay >> q_pin_output_pin_placement_delay >> input_pin_d_pin_placement_delay >> slack >> q_pin_output_pin_x >> q_pin_output_pin_y >> d_pin_input_pin_x >> d_pin_input_pin_y >> size;
+        std::pair<int,int> q_pin_output_pin_location = std::make_pair(q_pin_output_pin_x,q_pin_output_pin_y);
+        std::pair<int,int> d_pin_input_pin_location = std::make_pair(d_pin_input_pin_x,d_pin_input_pin_y);
+        TimingNode node(id,slack);
+        node.set_q_pin_delay(q_pin_delay);
+        node.set_q_pin_output_pin_placement_delay(q_pin_output_pin_placement_delay);
+        node.set_input_pin_d_pin_placement_delay(input_pin_d_pin_placement_delay);
+        node.set_q_pin_output_pin_location(q_pin_output_pin_location);
+        node.set_d_pin_input_pin_location(d_pin_input_pin_location);        
+        for(int i=0;i<size;i++){
+            int affected_d_pin;
+            iss >> affected_d_pin;
+            node.add_affected_d_pin(affected_d_pin);
+        }
+        timing_nodes.insert(std::make_pair(id,node));
+    }
+}
 
-void Timer::create_timing_graph(){
+void Timer::create_timing_graph(bool read_data){
+    if(read_data){
+        create_timing_graph_by_read_data();
+        return;
+    }
     const circuit::OriginalNetlist &netlist = circuit::OriginalNetlist::get_instance();
     const std::vector<circuit::Cell> &cells = netlist.get_cells();
     for(const auto &cell : cells){

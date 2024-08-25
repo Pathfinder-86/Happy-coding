@@ -1,5 +1,0 @@
-dump_tcl_setting true
-plot_mode true
-runtcl_mode true
-max_iterations 100
-clustering_rate 0.85

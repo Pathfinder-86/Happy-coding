@@ -3,7 +3,7 @@
 #include "../estimator/solution.h"
 #include "../estimator/cost.h"
 #include "../circuit/netlist.h"
-#include "../circuits/cell.h"
+#include "../circuit/cell.h"
 #include "../legalizer/legalizer.h"
 #include "../config/config_manager.h"
 #include "../estimator/lib_cell_evaluator.h"
@@ -14,6 +14,7 @@
 #include <unordered_map>
 namespace command{
 void CommandManager::kmeans_cluster(){
+    /*
     std::cout << "INIT Kmeans_cluster" << std::endl;
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
     const estimator::FFLibcellCostManager &ff_libcells_cost_manager = estimator::FFLibcellCostManager::get_instance();
@@ -60,7 +61,7 @@ void CommandManager::kmeans_cluster(){
         // kmeans
         // decide K
     }
-    
+    */
 }
 
 int calculate_distance(const std::pair<int, int>& node1, const std::pair<int, int>& node2) {
