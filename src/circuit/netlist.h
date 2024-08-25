@@ -38,6 +38,14 @@ public:
         }
     }
 
+    int get_cell_bits(int id) const {
+        if (id >= 0 && id < static_cast<int>(cells.size())) {
+            return cells[id].get_bits();
+        } else {
+            throw std::out_of_range("Invalid const cell ID" + std::to_string(id));
+        }
+    }
+
     Cell& get_mutable_cell(int id) {
         if (id >= 0 && id < static_cast<int>(cells.size())) {
             return cells[id];

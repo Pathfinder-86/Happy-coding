@@ -35,7 +35,7 @@ void CommandManager::write_output_data(const std::string &filename) {
             continue;
         }
         int id = cell.get_id();
-        const std::string &cell_name = "C" + std::to_string(id);
+        const std::string &cell_name = "FFC" + std::to_string(id);
         int lib_cell_id = cell.get_lib_cell_id();
         const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
         std::string lib_cell_name = lib_cell.get_name();
@@ -50,7 +50,7 @@ void CommandManager::write_output_data(const std::string &filename) {
             continue;
         }
         int cell_id = cell.get_id();
-        const std::string &cell_name = "C" + std::to_string(cell_id);
+        const std::string &cell_name = "FFC" + std::to_string(cell_id);
         int lib_cell_id = cell.get_lib_cell_id();
         const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
         const std::vector<int> &cells_input_pins_id = cell.get_input_pins_id();
@@ -109,7 +109,7 @@ void CommandManager::write_output_data_from_best_solution(const std::string &fil
             continue;
         }
         int id = cell.get_id();
-        const std::string &cell_name = "C" + std::to_string(id);
+        const std::string &cell_name = "FFC" + std::to_string(id);
         int lib_cell_id = cell.get_lib_cell_id();
         const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
         std::string lib_cell_name = lib_cell.get_name();
@@ -124,7 +124,7 @@ void CommandManager::write_output_data_from_best_solution(const std::string &fil
             continue;
         }
         int cell_id = cell.get_id();
-        const std::string &cell_name = "C" + std::to_string(cell_id);
+        const std::string &cell_name = "FFC" + std::to_string(cell_id);
         int lib_cell_id = cell.get_lib_cell_id();
         const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
         const std::vector<int> &cells_input_pins_id = cell.get_input_pins_id();

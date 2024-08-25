@@ -8,12 +8,12 @@ namespace circuit {
 
 bool OriginalNetlist::check_cells_location(const std::vector<Cell> &removed_clustered_cells){
     if(check_overlap(removed_clustered_cells)){
-        return true;
+        return false;
     }
     if(check_out_of_die(removed_clustered_cells)){
-        return true;
+        return false;
     }
-    return false;
+    return true;
 }
 
 bool OriginalNetlist::check_overlap(const std::vector<Cell> &removed_clustered_cells){

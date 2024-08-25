@@ -40,15 +40,28 @@ void CommandManager::SA() {
                 std::cout << "Not enough FF cells to cluster" << std::endl;
                 continue;
             }
-            // random pick two cells_id for sequential cells
+            // random pick two cells_id with same bits num
             int size = ff_cell_ids.size();
-            int first_idx = rand() % size;
-            int second_idx = rand() % size;
-            while (first_idx == second_idx) {
-                second_idx = rand() % size;
-            }
+            int first_idx = rand() % size;            
             int first_cell_id = *std::next(ff_cell_ids.begin(), first_idx);
-            int second_cell_id = *std::next(ff_cell_ids.begin(), second_idx);
+            const circuit::Cell &cell1 = netlist.get_cell(first_cell_id); 
+            int cell1_bits = cell1.get_bits();
+            int second_cell_id = -1;
+            for(int cid : ff_cell_ids){
+                if(cid == first_cell_id){
+                    continue;
+                }
+                const circuit::Cell &cell2 = netlist.get_cell(cid);
+                if(cell2.get_bits() == cell1_bits){
+                    second_cell_id = cid;
+                    break;
+                }
+            }
+            if(second_cell_id == -1){
+                std::cout<<"No FF cell with same bits num to cluster"<<std::endl;
+                continue;
+            }
+            
             std::vector<int> cell_ids = {first_cell_id, second_cell_id};
             int cluster_res = netlist.cluster_cells(cell_ids);
             if(cluster_res == 0){

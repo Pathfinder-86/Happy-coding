@@ -14,16 +14,16 @@ bool Netlist::check_cells_location(){
             removed_clustered_cells.push_back(cell);
         }
     }
-    bool cell_loc =  original_netlist.check_cells_location(removed_clustered_cells);
+    bool cell_location_legal =  original_netlist.check_cells_location(removed_clustered_cells);
     legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();    
     bool legal = legalizer.check_on_site();
-    if(!cell_loc){
+    if(!cell_location_legal){
         std::cout<<"ERROR! cells overlap or cell out of die\n";        
     }
     if(!legal){
         std::cout<<"ERROR! cells are not legal(on-site)\n";
     }
-    return cell_loc && legal;
+    return cell_location_legal && legal;
 }
 
 // return 0: success , return 1: legalize fail, return 2: others

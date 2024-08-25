@@ -1,8 +1,3 @@
-#./executable data/testcase/input.txt res/testcase/output_small.txt -f runtcl_small > log_small
-#./sanity_20240801 data/testcase/input.txt res/testcase/output_small.txt
-
 ./executable data/testcase/testcase1_0812.txt res/testcase/output1_large.txt -f runtcl_large > log1_large
-./sanity_20240801 data/testcase/testcase1_0812.txt res/testcase/output1_large.txt
-
-#./executable data/testcase/testcase2.txt res/testcase/output2_small.txt -f runtcl_small > log2_small
-#./sanity_20240801 data/testcase/testcase2.txt res/testcase/output2_small.txt
+./sanity_20240801 data/testcase/testcase1_0812.txt res/testcase/output1_large.txt >> log1_large
+./preliminary-evaluator data/testcase/testcase1_0812.txt res/testcase/output1_large.txt >> log1_large

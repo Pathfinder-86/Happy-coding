@@ -1,5 +1,5 @@
-./executable data/testcase/input.txt res/testcase/output_small.txt -f runtcl_small > log_small
-./sanity_20240801 data/testcase/input.txt res/testcase/output_small.txt
+./executable data/testcase/input.txt res/testcase/output_small_2.txt -f runtcl_small > log_small_2
+./sanity_20240801 data/testcase/input.txt res/testcase/output_small_2.txt
 
 #./executable data/testcase/testcase1_balanced.txt res/testcase/output1_small.txt -f runtcl_small > log1_small
 #./sanity_20240801 data/testcase/testcase1_balanced.txt res/testcase/output1_small.txt
