@@ -59,13 +59,28 @@ void FFLibcellCostManager::sort_by_cost(){
 }
 
 int FFLibcellCostManager::find_mid_bits_of_lib(){
-    std::vector<int> bits;
-    bits.reserve(bits_ff_libcells_cost.size());
-    for(auto& it : bits_ff_libcells_cost){
-        bits.push_back(it.first);
-    }
-    std::sort(bits.begin(),bits.end());
-    this->mid_bits_of_lib = bits[bits.size()/2];
+    std::sort(bits_num.begin(),bits_num.end());
+    int mid = bits_num.size()/2;
+    return bits_num[mid];
 }
+
+void FFLibcellCostManager::find_best_libcell_bits(){
+    std::vector<std::pair<int,double>> best_libcell_for_bits_avg_cost_per_bit;
+    for(auto& it : bits_ff_libcells_sort_by_total_cost){
+        int bits = it.first;
+        int best_libcell_id = it.second.front().get_id();
+        best_libcell_bits[bits] = best_libcell_id;
+        bits_num.push_back(bits);
+        double total_cost = it.second.front().get_total_cost();
+        best_libcell_for_bits_avg_cost_per_bit.push_back(std::make_pair(bits,total_cost/bits));
+    }
+    std::sort(best_libcell_for_bits_avg_cost_per_bit.begin(),best_libcell_for_bits_avg_cost_per_bit.end(),[](const std::pair<int,double>& a, const std::pair<int,double>& b){
+        return a.second < b.second;
+    });
+    for(int i=0;i<best_libcell_for_bits_avg_cost_per_bit.size();i++){
+        best_libcell_sorted_by_bits.push_back(best_libcell_for_bits_avg_cost_per_bit[i].first);        
+    }
+}
+
 
 }

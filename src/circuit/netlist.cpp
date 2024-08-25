@@ -43,7 +43,7 @@ int Netlist::cluster_cells(const std::vector<int> &cells_id){
     for(int cell_id : cells_id){
         const Cell &cell = get_cell(cell_id);
         if(cell.is_clustered()){
-            std::cout<<"CLSUTER:: Cannot cluster cells that are sequential cells\n";
+            std::cout<<"CLSUTER:: Cannot cluster cells that have already been clustered\n";
             return 3;
         }
     }

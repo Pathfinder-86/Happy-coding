@@ -359,7 +359,7 @@ void CommandManager::read_input_data(const std::string &filename) {
     
     std::cout<<"EVALUATOR:: LIB_INIT"<<std::endl;
     // libcell evaluator
-    estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();    
+    estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();      
     ff_libcell_cost_manager.init();
     std::cout<<"EVALUATOR:: LIB_END"<<std::endl;
     runtime_manager.get_runtime();

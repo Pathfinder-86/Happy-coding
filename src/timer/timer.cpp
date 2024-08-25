@@ -250,8 +250,7 @@ void Timer::create_timing_graph_by_read_data(){
 
 void Timer::create_timing_graph(){
     const config::ConfigManager &config_manager = config::ConfigManager::get_instance();
-    bool read_data = std::get<bool>(config_manager.get_config_value("fast_timer"));        
-    read_data = false;
+    bool read_data = std::get<bool>(config_manager.get_config_value("fast_timer")); 
     if(read_data){
         create_timing_graph_by_read_data();
         return;
