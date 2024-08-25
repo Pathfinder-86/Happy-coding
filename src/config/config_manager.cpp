@@ -90,8 +90,8 @@ void ConfigManager::init_config_value(){
     add_config("plot_mode", ConfigType::Bool, false);
     add_config("testing_mode", ConfigType::Bool, false);
     add_config("run_tiny", ConfigType::Bool, false);
-    add_config("clustering_rate", ConfigType::Double, 1);
-    add_config("declustering_rate", ConfigType::Double, 0);
+    add_config("clustering_rate", ConfigType::Double, 1.0);
+    add_config("declustering_rate", ConfigType::Double, 0.0);
     add_config("max_iterations", ConfigType::Int, 10000);
     add_config("cooling_rate", ConfigType::Double, 0.95);
     add_config("time_out", ConfigType::Int, 50);

@@ -10,7 +10,7 @@
 #include <../circuit/pin.h>
 #include <../circuit/net.h>
 #include <fstream>
-#include <../config/config_manager.h>
+#include "../config/config_manager.h"
 #include <sstream>
 namespace timer {
 
@@ -25,8 +25,11 @@ void Timer::write_init_timing_data(){
         write_case_str = "timer_testcase1_0812.txt";
     }else if(write_case == 2){
         write_case_str = "timer_testcase2_0812.txt";
+    }else if(write_case == 3){
+        write_case_str = "timer_tiny.txt";
     }
-    std::ofstream file(write_case_str);
+    const std::string &path = pre_fix + write_case_str;
+    std::ofstream file(path);
     for(auto& [id,timing_node] : timing_nodes){
         double q_pin_delay = timing_node.get_q_pin_delay();
         double q_pin_output_pin_placement_delay = timing_node.get_q_pin_output_pin_placement_delay();
@@ -198,18 +201,22 @@ std::vector<int> Timer::dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin
     return affected_d_pins;
 }
 
-void Timer::create_timing_graph_by_read_data(){
-    const config::ConfigManager &config_manager = config::ConfigManager::get_instance();
+void Timer::create_timing_graph_by_read_data(){    
+    config::ConfigManager &config_manager = config::ConfigManager::get_instance();
     int read_case = std::get<int>(config_manager.get_config_value("timer_case"));
     std::string read_case_str;
+    std::string pre_fix = "timer_init/";
     if(read_case == 0){
         read_case_str = "timer_input.txt";
     }else if(read_case == 1){
         read_case_str = "timer_testcase1_0812.txt";
     }else if(read_case == 2){
         read_case_str = "timer_testcase2_0812.txt";
+    }else if(read_case == 3){
+        read_case_str = "timer_tiny.txt";
     }
-    std::ifstream file(read_case_str);
+    const std::string &path = pre_fix + read_case_str;
+    std::ifstream file(path);
     std::string line;
     while(std::getline(file,line)){
         std::istringstream iss(line);
@@ -241,7 +248,10 @@ void Timer::create_timing_graph_by_read_data(){
     }
 }
 
-void Timer::create_timing_graph(bool read_data){
+void Timer::create_timing_graph(){
+    const config::ConfigManager &config_manager = config::ConfigManager::get_instance();
+    bool read_data = std::get<bool>(config_manager.get_config_value("fast_timer"));        
+    read_data = false;
     if(read_data){
         create_timing_graph_by_read_data();
         return;
@@ -256,6 +266,7 @@ void Timer::create_timing_graph(bool read_data){
             dfs_from_q_pin_to_each_d_pin(q_pin_id);
         }
     }
+    write_init_timing_data();
     //std::cout<<"DEBUG create_timing_graph Finish "<<std::endl;
 }
 

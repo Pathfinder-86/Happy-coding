@@ -122,7 +122,7 @@ public:
         }
     }
     // path from q_pin to each d_pin
-    void create_timing_graph(bool read_data = false);
+    void create_timing_graph();
     void dfs_from_q_pin_to_each_d_pin(int q_pin);    
     void update_slack_since_cell_move(int cell_id);
     void update_slack_since_libcell_change(int cell_id);
