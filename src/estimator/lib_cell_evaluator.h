@@ -2,6 +2,7 @@
 #define ESTIMATOR_LIB_CELL_EVALUATOR_H
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 namespace estimator {
     struct FFLibCellCost{
         private:
@@ -111,8 +112,11 @@ namespace estimator {
             }
 
             void find_best_libcell_bits();
-            const std::vector<int>& get_bits_num() const{
+            const std::unordered_set<int>& get_bits_num() const{
                 return bits_num;
+            }
+            bool is_bits_libcell_exsit(int bits) const{
+                return bits_num.find(bits) != bits_num.end();
             }
             int get_best_libcell_for_bit(int bits) const{
                 if(best_libcell_bits.find(bits) == best_libcell_bits.end()){
@@ -133,7 +137,7 @@ namespace estimator {
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_timing_cost;
             int mid_bits_of_lib;
             std::unordered_map<int,int> best_libcell_bits;
-            std::vector<int> bits_num;
+            std::unordered_set<int> bits_num;
             std::vector<int> best_libcell_sorted_by_bits;
     };
 }

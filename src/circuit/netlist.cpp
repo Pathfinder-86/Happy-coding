@@ -371,6 +371,9 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std:
         // need to find legalization fail reason and adjust circuit to cluster more ff
     }
 
+    if(cells_id.size() == 1){
+        return 0;
+    }
 
     // handle pins mapping    
     std::vector<int> new_cell_input_pins_id;
@@ -387,10 +390,10 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std:
     cell1.set_output_pins_id(new_cell_output_pins_id);
 
     // skip timer don't care pin location and timing
-    std::vector<std::pair<double, double>> new_lib_cell_input_pins_position = new_lib_cell.get_input_pins_position();
-    std::vector<std::pair<double, double>> new_lib_cell_output_pins_position = new_lib_cell.get_output_pins_position();    
+    //std::vector<std::pair<double, double>> new_lib_cell_input_pins_position = new_lib_cell.get_input_pins_position();
+    //std::vector<std::pair<double, double>> new_lib_cell_output_pins_position = new_lib_cell.get_output_pins_position();    
 
-    int bits = new_lib_cell_input_pins_position.size();
+    int bits = new_cell_input_pins_id.size();
     for(int i = 0; i < bits; i++){
         int input_pin_id = new_cell_input_pins_id.at(i);
         int output_pin_id = new_cell_output_pins_id.at(i);

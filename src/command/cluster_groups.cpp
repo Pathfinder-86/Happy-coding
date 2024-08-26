@@ -7,6 +7,7 @@
 #include "../legalizer/legalizer.h"
 #include "../config/config_manager.h"
 #include "../estimator/lib_cell_evaluator.h"
+#include "../legalizer/utilization.h"
 #include <algorithm>
 #include <limits> 
 #include <cmath>
@@ -20,13 +21,13 @@ void CommandManager::kmeans_cluster(){
     std::cout << "INIT Kmeans_cluster" << std::endl;
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
     const estimator::FFLibcellCostManager &ff_libcells_cost_manager = estimator::FFLibcellCostManager::get_instance();
-    int mid_bits_of_lib = ff_libcells_cost_manager.get_mid_bits_of_lib();
     runtime::RuntimeManager &runtime = runtime::RuntimeManager::get_instance();
     estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
     const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();
     
-    
+
     std::vector<std::pair<int,int>> clk_groups_id_size;
     for(const auto &clk_group_id_ff_cell_ids : clk_group_id_to_ff_cell_ids){
         clk_groups_id_size.push_back(std::make_pair(clk_group_id_ff_cell_ids.first,clk_group_id_ff_cell_ids.second.size()));
@@ -88,7 +89,9 @@ void CommandManager::kmeans_cluster(){
         }
 
         for(const auto &cluster : clustering_res){
-
+            // remove in utilization first since we can't get cell original position and size after clustering
+            utilization_calculator.remove_cells(cluster);
+            // try cluster
             int cluster_res = netlist.cluster_cells_without_check(cluster);
 
             if(cluster_res == 0){
@@ -96,10 +99,22 @@ void CommandManager::kmeans_cluster(){
             }else if(cluster_res == 1){
                 std::cout<<"Cluster fail due to legal rollback this cluster"<<std::endl;
                 solution_manager.rollack_best_solution_by_cells_id(cluster);
-                cost_calculator.calculate_cost_rollback_by_cells_id(cluster);
+                // recover original utilization
+                utilization_calculator.add_cells(cluster);
                 continue;
             }else if(cluster_res == 2){
                 std::cout<<"single bit don't change"<<std::endl;
+                continue;
+            }
+
+            // check utilization
+            int first_cell_id = cluster[0];
+            bool utilization_valid = utilization_calculator.try_add_cell_with_overflow_rollback(first_cell_id);
+            if(!utilization_valid){
+                std::cout<<"Cluster fail due to utilization overflow"<<std::endl;
+                solution_manager.rollack_best_solution_by_cells_id(cluster);
+                // recover original utilization
+                utilization_calculator.add_cells(cluster);
                 continue;
             }
 
@@ -114,7 +129,16 @@ void CommandManager::kmeans_cluster(){
             }else{
                 solution_manager.rollack_best_solution_by_cells_id(cluster);
                 cost_calculator.calculate_cost_rollback_by_cells_id(cluster);
-                std::cout<<"New cost is worse than best cost rollback (timing factor)"<<std::endl;
+                std::cout<<"New cost is worse than best cost rollback why???"<<std::endl;
+                std::cout<<"Try cluster:";
+                for(int cell_id : cluster){
+                    const circuit::Cell &cell = netlist.get_cell(cell_id);
+                    int bits = cell.get_bits();
+                    const design::LibCell &lib_cell = design::Design::get_instance().get_lib_cells().at(cell.get_lib_cell_id());
+                    const std::string &lib_cell_name = lib_cell.get_name();
+                    std::cout<<cell_id<<"["+lib_cell_name+"("<<bits<<")] ";
+                }
+                std::cout<<std::endl;
             }
             if(runtime.is_timeout()){
                 break;

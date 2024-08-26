@@ -84,6 +84,8 @@ void Solution::rollback_cells_by_id(const std::vector<int> &cells_id){
         int clk_group_id = get_clk_group_id(cid);
         if(clk_group_id != -1){
             netlist.add_cell_to_clk_group(cid,clk_group_id);
+        }else{
+            std::cout<<"Error: clk_group_id not found"<<std::endl;
         }
     }
 

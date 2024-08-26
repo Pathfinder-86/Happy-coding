@@ -18,6 +18,7 @@ void FFLibcellCostManager::calculate_cost(){
         }
 
         int bits = libcells[i].get_bits();
+        bits_num.insert(bits);
         // ESTIMATE COST
         double timing_cost = libcells[i].get_delay() * bits * 0.0;  /*timing_factor;*/
         // REAL COST
@@ -59,9 +60,9 @@ void FFLibcellCostManager::sort_by_cost(){
 }
 
 int FFLibcellCostManager::find_mid_bits_of_lib(){
-    std::sort(bits_num.begin(),bits_num.end());
-    int mid = bits_num.size()/2;
-    return bits_num[mid];
+    std::vector<int> bits = std::vector<int>(bits_num.begin(),bits_num.end());
+    std::sort(bits.begin(),bits.end());    
+    return bits[bits.size()/2];
 }
 
 void FFLibcellCostManager::find_best_libcell_bits(){
@@ -69,8 +70,7 @@ void FFLibcellCostManager::find_best_libcell_bits(){
     for(auto& it : bits_ff_libcells_sort_by_total_cost){
         int bits = it.first;
         int best_libcell_id = it.second.front().get_id();
-        best_libcell_bits[bits] = best_libcell_id;
-        bits_num.push_back(bits);
+        best_libcell_bits[bits] = best_libcell_id;        
         double total_cost = it.second.front().get_total_cost();
         best_libcell_for_bits_avg_cost_per_bit.push_back(std::make_pair(bits,total_cost/bits));
     }
@@ -79,6 +79,15 @@ void FFLibcellCostManager::find_best_libcell_bits(){
     });
     for(int i=0;i<best_libcell_for_bits_avg_cost_per_bit.size();i++){
         best_libcell_sorted_by_bits.push_back(best_libcell_for_bits_avg_cost_per_bit[i].first);        
+    }
+
+    // DEBUG
+    std::cout<<"FFLibcellCostManager::find_best_libcell_bits"<<std::endl;
+    const design::Design& design = design::Design::get_instance();
+    for(int bits : best_libcell_sorted_by_bits){
+        int lib_cell_id = best_libcell_bits[bits];
+        const std::string &lib_cell_name = design.get_lib_cells().at(lib_cell_id).get_name();
+        std::cout<<"bits: "<<bits<<" best_lib_cell: "<<lib_cell_name<<std::endl;
     }
 }
 

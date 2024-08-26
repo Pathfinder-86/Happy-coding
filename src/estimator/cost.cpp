@@ -33,7 +33,7 @@ void CostCalculator::calculate_cost(){
     }
     // TODO:  add utilization cost
     const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();
-    int overflow_bins = utilization.get_overflow_bins();
+    int overflow_bins = utilization.get_overflow_bins_num();
     utilization_cost = utilization_factor * overflow_bins;
     std::cout<<"COSTCAL:: INIT"<<std::endl;
     std::cout << "Total Cost: " << get_cost() << std::endl;

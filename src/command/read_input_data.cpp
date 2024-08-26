@@ -380,7 +380,7 @@ void CommandManager::read_input_data(const std::string &filename) {
     std::cout<<"LEGAL:: INIT"<<std::endl;
     // update bins
     legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
-    utilization_calculator.update_bins_utilization();        
+    utilization_calculator.init_utilization_calculator();
     // check legal
     legalizer.init();
     if(legalizer.valid()){
