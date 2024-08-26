@@ -130,6 +130,10 @@ class Legalizer{
         const std::unordered_map<int,std::vector<int>>& get_cell_id_to_site_id_map() const{
             return cell_id_to_site_id_map;
         }        
+        const std::vector<int> &get_cell_site_ids(int cell_id) const{
+            return cell_id_to_site_id_map.at(cell_id);
+        }
+        void update_cell_to_site(int cell_id, const std::vector<int> &site_ids);
 
     private:   
         std::vector<Row> rows; // const 

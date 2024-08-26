@@ -77,6 +77,49 @@ namespace estimator {
             const std::unordered_map<int,int>& get_ff_cell_id_to_clk_group_id() const{
                 return ff_cell_id_to_clk_group_id;
             }
+            void update_cells_by_id(const std::vector<int> &cells_id);
+            void rollback_cells_by_id(const std::vector<int> &cells_id);
+            void remove_cell_from_clk_group(int cell_id){
+                if(ff_cell_id_to_clk_group_id.count(cell_id)){
+                    int clk_group_id = ff_cell_id_to_clk_group_id[cell_id];
+                    ff_cell_id_to_clk_group_id.erase(cell_id);
+                    clk_group_id_to_ff_cell_ids[clk_group_id].erase(cell_id);
+                }
+            }
+            void remove_sequential_cell(int cell_id){
+                sequential_cells_id.erase(cell_id);
+            }
+            void remove_cell_id_to_sites_id(int cell_id){
+                cell_id_to_site_id_map.erase(cell_id);
+            }
+            void rollback_netlist(const std::vector<int> &cells_id);
+            void add_sequential_cell(int cell_id){
+                sequential_cells_id.insert(cell_id);
+            }
+            void add_cell_to_clk_group(int cell_id,int clk_group_id){
+                ff_cell_id_to_clk_group_id[cell_id] = clk_group_id;
+                clk_group_id_to_ff_cell_ids[clk_group_id].insert(cell_id);
+            }
+            void add_cell_id_to_site_id(int cell_id,const std::vector<int> &site_ids){
+                cell_id_to_site_id_map[cell_id] = site_ids;
+            }
+            void update_single_cell(const circuit::Cell &cell){
+                cells[cell.get_id()] = cell;
+            }
+            const circuit::Cell &get_cell(int cell_id) const{
+                return cells[cell_id];
+            }
+            int get_clk_group_id(int cell_id) const{
+                if(ff_cell_id_to_clk_group_id.count(cell_id)){
+                    return ff_cell_id_to_clk_group_id.at(cell_id);
+                }else{
+                    return -1;
+                }
+            }
+            const std::vector<int> & get_cell_site_ids(int cell_id) const{
+                return cell_id_to_site_id_map.at(cell_id);
+            }
+
         private:
             double cost;
             // netlist
@@ -150,7 +193,9 @@ namespace estimator {
             }
             void switch_to_current_solution(){
                 switch_to_other_solution(current_solution);
-            }            
+            }
+            void update_best_solution_by_cells_id(const std::vector<int> &cells_id,double cost);
+            void rollack_best_solution_by_cells_id(const std::vector<int> &cells_id);            
         private:
             Solution best_solution;
             Solution init_solution;

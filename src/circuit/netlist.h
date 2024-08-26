@@ -85,6 +85,7 @@ public:
     // libcell mapping
     // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
     int try_legal_and_modify_circuit_since_merge_cell(const std::vector<int> &cells_id,const int new_lib_cell_id);
+    int try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std::vector<int> &cells_id,const int new_lib_cell_id);
     int modify_circuit_since_divide_cell(int c,const int new_lib_cell_id1,const int new_lib_cell_id2);
 
     // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
@@ -167,6 +168,9 @@ public:
     void reassign_pins_cell_id();
     int swap_ff(int cell_id,int new_lib_cell_id);
     int cluster_clk_group(const std::vector<std::vector<int>> &clustering_res);
+    void update_cell(const Cell &cell){
+        cells[cell.get_id()] = cell;
+    }
 private:
     // sequential cells
     std::vector<Pin> pins;

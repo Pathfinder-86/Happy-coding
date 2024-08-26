@@ -27,19 +27,35 @@ struct CellCost {
         double get_total_cost() const {
             return timing_cost + power_cost + area_cost;
         }
+        void set_zero(){
+            timing_cost = 0.0;
+            power_cost = 0.0;
+            area_cost = 0.0;
+        }
+        void set_timing_cost(double timing_cost){
+            this->timing_cost = timing_cost;
+        }
+        void set_power_cost(double power_cost){
+            this->power_cost = power_cost;
+        }
+        void set_area_cost(double area_cost){
+            this->area_cost = area_cost;
+        }
 };
 
 class CostCalculator{    
     private:
-        CostCalculator():timing_cost(0.0),power_cost(0.0),area_cost(0.0),utilization_cost(0.0),total_cost(0.0){}
+        CostCalculator():timing_cost(0.0),power_cost(0.0),area_cost(0.0),utilization_cost(0.0){}
     public:
         static CostCalculator& get_instance(){
             static CostCalculator instance;
             return instance;
         }
         void calculate_cost();
+        void calculate_cost_update_by_cells_id(const std::vector<int> &cells_id);
+        void calculate_cost_rollback_by_cells_id(const std::vector<int> &cells_id);
         double get_cost() const {
-            return total_cost;
+            return timing_cost + power_cost + area_cost + utilization_cost;
         }
         double get_timing_cost() const {
             return timing_cost;
@@ -58,21 +74,15 @@ class CostCalculator{
             power_cost = 0.0;
             area_cost = 0.0;
             utilization_cost = 0.0;
-            total_cost = 0.0;
             sequential_cells_cost.clear();
-            adjusted_sequential_cells_cost.clear();
         } 
         const std::vector<CellCost>& get_sequential_cells_cost() const {
             return sequential_cells_cost;
         }
-        const std::vector<CellCost>& get_adjusted_sequential_cells_cost() const {
-            return adjusted_sequential_cells_cost;
-        }
         // sorted ?
     private:
-        double timing_cost,power_cost,area_cost,utilization_cost,total_cost;
+        double timing_cost,power_cost,area_cost,utilization_cost;
         std::vector<CellCost> sequential_cells_cost;
-        std::vector<CellCost> adjusted_sequential_cells_cost;
 };
 }
 // namespace estimator

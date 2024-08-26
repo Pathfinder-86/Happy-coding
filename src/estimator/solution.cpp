@@ -38,4 +38,62 @@ void SolutionManager::switch_to_other_solution(const Solution &solution){
     cost_calculator.calculate_cost();
 }
 
+void SolutionManager::update_best_solution_by_cells_id(const std::vector<int> &cells_id,double cost){
+    // update cost
+    this->best_solution.update_cost(cost);
+
+    // update NETLIST and legal
+    this->best_solution.update_cells_by_id(cells_id);
+    
+    // skip timer
+}
+
+void Solution::update_cells_by_id(const std::vector<int> &cells_id){
+    // Cluster keep first and remove the rest
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
+    for(int cell_id : cells_id){
+        const circuit::Cell &cell = netlist.get_cell(cell_id);
+        update_single_cell(cell);
+    }
+
+    for(int i=1;i<cells_id.size();i++){
+        int cell_id = cells_id[i];
+        remove_sequential_cell(cell_id);
+        remove_cell_from_clk_group(cell_id);
+        // legal
+        remove_cell_id_to_sites_id(cell_id);
+    }    
+
+    const legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
+    const std::vector<int> &site_ids = legalizer.get_cell_site_ids(cells_id[0]);
+    add_cell_id_to_site_id(cells_id[0],site_ids);
+}
+
+void SolutionManager::rollack_best_solution_by_cells_id(const std::vector<int> &cells_id){
+    // ROLLBACK solution -> netlist
+    this->best_solution.rollback_cells_by_id(cells_id);
+}
+
+void Solution::rollback_cells_by_id(const std::vector<int> &cells_id){
+    // NETLIST
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    for(int cid : cells_id){
+        const circuit::Cell &cell = get_cell(cid);
+        netlist.update_cell(cell);
+        netlist.add_sequential_cell(cid);
+        int clk_group_id = get_clk_group_id(cid);
+        if(clk_group_id != -1){
+            netlist.add_cell_to_clk_group(cid,clk_group_id);
+        }
+    }
+
+    // LEGAL
+    legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
+    int first_cell_id = cells_id[0];
+    legalizer.replacement_cell(first_cell_id);
+    for(int cid : cells_id){
+        legalizer.update_cell_to_site(cid,get_cell_site_ids(cid));
+    }
+}
+
 }

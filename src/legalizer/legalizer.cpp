@@ -226,8 +226,8 @@ void Legalizer::init(){
     runtime_manager.get_runtime();    
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     not_on_site_cells_id = netlist.get_sequential_cells_id();
-    place_available_cells_on_empty_sites_sort_by_slack();    
-    move_unavailable_cells_to_empty_sites_sort_by_slack();
+    place_available_cells_on_empty_sites();    
+    move_unavailable_cells_to_empty_sites();
     std::cout<<"LEGAL:: finish"<<std::endl;
     runtime_manager.get_runtime();    
 }
@@ -323,7 +323,11 @@ void Legalizer::add_cell(int cell_id){
 
 void Legalizer::place_available_cells_on_empty_sites(){
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    std::vector<circuit::Cell> &cells = netlist.get_mutable_cells();            
+    std::vector<circuit::Cell> &cells = netlist.get_mutable_cells();
+    if(not_on_site_cells_id.empty()){
+        return;
+    }
+    std::cout<<"LEGAL:: place_available_cells_on_empty_sites"<<std::endl;
     for(auto it = not_on_site_cells_id.begin(); it != not_on_site_cells_id.end();){
         int cid = *it;
         circuit::Cell &cell = cells.at(cid);    
@@ -331,7 +335,6 @@ void Legalizer::place_available_cells_on_empty_sites(){
         int y = cell.get_y();
         int rx = cell.get_rx();
         int ry = cell.get_ry();   
-        //std::cout<<"LEGAL:: Try to place cell "<<netlist.get_cell_name(cid)<<"origin at ("<<x<<","<<y<<")"<<std::endl;
         const std::vector<int> &sites_id = nearest_empty_site_enough_space(x,y,rx,ry);
         if(!sites_id.empty()){
             it = not_on_site_cells_id.erase(it);
@@ -339,30 +342,27 @@ void Legalizer::place_available_cells_on_empty_sites(){
             const Site &site = sites.at(site_id);            
             int site_x = site.get_x();
             int site_y = site.get_y();
-            if(site_x != x || site_y != y){
-                //std::cout<<"LEGAL:: MOVE to nearest cell "<<netlist.get_cell_name(cid)<< " at ("<<site_x<<","<<site_y<<")"<<std::endl;
+            if(site_x != x || site_y != y){               
                 cell.move(site_x,site_y);
-            }else{
-                //std::cout<<"LEGAL:: cell "<<netlist.get_cell_name(cid)<< " don't need to move"<<std::endl;
             }
 
             for(int site_id : sites_id){
                 empty_sites_id.erase(site_id);
                 site_id_to_cell_id_map[site_id] = cid;
-                cell_id_to_site_id_map[cid].push_back(site_id);
-                //std::cout<<"LEGAL:: add site_id "<<site_id<<std::endl;
+                cell_id_to_site_id_map[cid].push_back(site_id);            
             }                           
         }else{
             it++;
-            //std::cout<<"LEGAL:: place_available_cells_on_empty_sites FAIL"<<std::endl;
         }
     }
 }
 
 void Legalizer::place_available_cells_on_empty_sites_sort_by_slack(){
     // sort by slack first
+
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     std::vector<circuit::Cell> &cells = netlist.get_mutable_cells();     
+    
     std::vector<int> sorted_not_on_site_cells_id;
     sorted_not_on_site_cells_id.reserve(not_on_site_cells_id.size());
     for(int cid : not_on_site_cells_id){
@@ -371,7 +371,8 @@ void Legalizer::place_available_cells_on_empty_sites_sort_by_slack(){
     std::sort(sorted_not_on_site_cells_id.begin(),sorted_not_on_site_cells_id.end(),[&](int a, int b){
         return cells.at(a).get_slack() < cells.at(b).get_slack();
     });
-    for(int cid : sorted_not_on_site_cells_id){        
+    std::cout<<"LEGAL:: place_available_cells_on_empty_sites_sort_by_slack"<<std::endl;
+    for(int cid : not_on_site_cells_id){        
         circuit::Cell &cell = cells.at(cid);    
         int x = cell.get_x();
         int y = cell.get_y();
@@ -404,7 +405,10 @@ void Legalizer::place_available_cells_on_empty_sites_sort_by_slack(){
 void Legalizer::move_unavailable_cells_to_empty_sites(){    
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     std::vector<circuit::Cell> &cells = netlist.get_mutable_cells();
-    runtime::RuntimeManager &runtime_manager = runtime::RuntimeManager::get_instance();    
+    if(not_on_site_cells_id.empty()){
+        return;
+    }
+    std::cout<<"LEGAL:: move_unavailable_cells_to_empty_sites"<<std::endl;
     for(auto it = not_on_site_cells_id.begin(); it != not_on_site_cells_id.end();){
         int cid = *it;
         circuit::Cell &cell = cells.at(cid);
@@ -421,10 +425,7 @@ void Legalizer::move_unavailable_cells_to_empty_sites(){
             int site_x = site.get_x();
             int site_y = site.get_y();
             if(site_x != x || site_y != y){
-                //std::cout<<"LEGAL:: MOVE to NONnearest cell "<<netlist.get_cell_name(cid)<< " at ("<<site_x<<","<<site_y<<")"<<std::endl;
                 cell.move(site_x,site_y);
-            }else{
-                //std::cout<<"LEGAL:: cell "<<netlist.get_cell_name(cid)<< " don't need to move"<<std::endl;
             }
 
             for(int site_id : sites_id){
@@ -434,7 +435,6 @@ void Legalizer::move_unavailable_cells_to_empty_sites(){
             }                           
         }else{
             it++;
-            //std::cout<<"LEGAL:: move_unavailable_cells_to_empty_sites FAIL"<<std::endl;
         }
     }
 }
@@ -442,6 +442,8 @@ void Legalizer::move_unavailable_cells_to_empty_sites(){
 void Legalizer::move_unavailable_cells_to_empty_sites_sort_by_slack(){
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     std::vector<circuit::Cell> &cells = netlist.get_mutable_cells();
+    std::cout<<"LEGAL:: move_unavailable_cells_to_empty_sites_sort_by_slack"<<std::endl;
+
     std::vector<int> sorted_not_on_site_cells_id;
     sorted_not_on_site_cells_id.reserve(not_on_site_cells_id.size());
     for(int cid : not_on_site_cells_id){
@@ -449,7 +451,7 @@ void Legalizer::move_unavailable_cells_to_empty_sites_sort_by_slack(){
     }
     std::sort(sorted_not_on_site_cells_id.begin(),sorted_not_on_site_cells_id.end(),[&](int a, int b){
         return cells.at(a).get_slack() < cells.at(b).get_slack();
-    });    
+    });
     for(int cid : sorted_not_on_site_cells_id){        
         circuit::Cell &cell = cells.at(cid);
         int x = cell.get_x();
@@ -492,9 +494,8 @@ bool Legalizer::legalize(){
     if(!available){
         return false;
     }            
-    place_available_cells_on_empty_sites_sort_by_slack();
-    move_unavailable_cells_to_empty_sites_sort_by_slack();
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    //place_available_cells_on_empty_sites();
+    move_unavailable_cells_to_empty_sites();
     if(!valid()){
         std::cerr << "Legalization failed." << std::endl;
         return false;
@@ -518,6 +519,15 @@ void Legalizer::switch_to_other_solution( const std::unordered_map<int,std::vect
             site_id_to_cell_id_map[site_id] = it.first;
         }        
     }    
+}
+
+void Legalizer::update_cell_to_site( int cell_id, const std::vector<int> &sites_id){
+    cell_id_to_site_id_map[cell_id] = sites_id;
+    not_on_site_cells_id.erase(cell_id);
+    for(int site_id : sites_id){
+        empty_sites_id.erase(site_id);
+        site_id_to_cell_id_map[site_id] = cell_id;
+    }
 }
 
 }
