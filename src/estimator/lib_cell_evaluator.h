@@ -33,12 +33,11 @@ namespace estimator {
                 static FFLibcellCostManager instance;
                 return instance;
             }
-            FFLibcellCostManager(){
-                init();
-            }
+            FFLibcellCostManager(){}
             void init(){
                 calculate_cost();
                 sort_by_cost();
+                find_best_libcell_bits();
                 find_mid_bits_of_lib();
             }
             void calculate_cost();
@@ -110,14 +109,32 @@ namespace estimator {
             int get_mid_bits_of_lib() const{
                 return mid_bits_of_lib;
             }
+
+            void find_best_libcell_bits();
+            const std::vector<int>& get_bits_num() const{
+                return bits_num;
+            }
+            int get_best_libcell_for_bit(int bits) const{
+                if(best_libcell_bits.find(bits) == best_libcell_bits.end()){
+                    return -1;
+                }else{
+                    return best_libcell_bits.at(bits);
+                }
+            }
+            const std::vector<int>& get_best_libcell_sorted_by_bits() const{
+                return best_libcell_sorted_by_bits;
+            }
         private:
-            std::unordered_map<int,FFLibCellCost> ff_libcells_cost; // lib_cell_id -> cost
+            std::unordered_map<int,FFLibCellCost> ff_libcells_cost; // lib_cell_id -> cost            
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_cost;
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_total_cost;
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_power_cost;
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_area_cost;
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_sort_by_timing_cost;
             int mid_bits_of_lib;
+            std::unordered_map<int,int> best_libcell_bits;
+            std::vector<int> bits_num;
+            std::vector<int> best_libcell_sorted_by_bits;
     };
 }
 

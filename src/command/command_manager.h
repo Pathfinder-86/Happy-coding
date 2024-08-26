@@ -27,6 +27,7 @@ namespace command {
         void test_decluster_ff();
         void SA();
         void kmeans_cluster();
+        void swap_ff();
     private:
         CommandManager() {}
         CommandManager(const CommandManager&) = delete;

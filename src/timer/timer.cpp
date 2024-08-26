@@ -27,6 +27,8 @@ void Timer::write_init_timing_data(){
         write_case_str = "timer_testcase2_0812.txt";
     }else if(write_case == 3){
         write_case_str = "timer_tiny.txt";
+    }else if(write_case == 4){
+        write_case_str = "timer_testcase3.txt";
     }
     const std::string &path = pre_fix + write_case_str;
     std::ofstream file(path);
@@ -214,6 +216,8 @@ void Timer::create_timing_graph_by_read_data(){
         read_case_str = "timer_testcase2_0812.txt";
     }else if(read_case == 3){
         read_case_str = "timer_tiny.txt";
+    }else if(read_case == 4){
+        read_case_str = "timer_testcase3.txt";
     }
     const std::string &path = pre_fix + read_case_str;
     std::ifstream file(path);

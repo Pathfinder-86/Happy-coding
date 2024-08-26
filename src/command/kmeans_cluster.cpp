@@ -12,14 +12,15 @@
 #include <limits> 
 #include <cmath>
 #include <unordered_map>
+#include "../runtime/runtime.h"
 namespace command{
 void CommandManager::kmeans_cluster(){
     std::cout << "INIT Kmeans_cluster" << std::endl;
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
     const estimator::FFLibcellCostManager &ff_libcells_cost_manager = estimator::FFLibcellCostManager::get_instance();
     int mid_bits_of_lib = ff_libcells_cost_manager.get_mid_bits_of_lib();
-
-
+    runtime::RuntimeManager &runtime = runtime::RuntimeManager::get_instance();
+    estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();
     
@@ -115,7 +116,7 @@ void CommandManager::kmeans_cluster(){
             }
         }
 
-        estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();
+        /*
         int iteration = 0;
         for(const auto &cluster : clustering_res){
             std::cout<<"Iteration "<<iteration++<<std::endl; 
@@ -123,16 +124,13 @@ void CommandManager::kmeans_cluster(){
                 const circuit::Cell &cell = netlist.get_cell(cell_id);
                 std::cout<<"id: "<<cell_id<<" bits:"<<cell.get_bits()<<" ";
             }
-            int cluster_res = netlist.cluster_cells(cluster);
+            int cluster_res = netlist.cluster_cells_without_check(cluster);
 
             if(cluster_res == 0){
                 std::cout<<"Cluster success"<<std::endl;
             }else if(cluster_res == -1){
                 std::cout<<"Cluster fail due to legal rollback"<<std::endl;
                 solution_manager.switch_to_best_solution();
-                continue;
-            }else{
-                std::cout<<"Cluster fail"<<std::endl;
                 continue;
             }
 
@@ -148,12 +146,41 @@ void CommandManager::kmeans_cluster(){
                 solution_manager.switch_to_best_solution();
                 std::cout<<"New cost is worse than best cost rollback (timing factor)"<<best_cost<<std::endl;
             }
-        }
-        solution_manager.keep_current_solution();
-
+            if(runtime.is_timeout()){
+                break;
+            }
+        } 
+        if(runtime.is_timeout()){
+            break;
+        } 
         // kmeans
-        // decide K
+        // decide K*/
+
+        int cluster_clk_group_res = netlist.cluster_clk_group(clustering_res);
+        if(cluster_clk_group_res == 0){
+            std::cout<<"Cluster success"<<std::endl;
+        }else if(cluster_clk_group_res == -1){
+            std::cout<<"Cluster fail due to legal rollback"<<std::endl;
+            solution_manager.switch_to_best_solution();
+            continue;
+        }
+
+        cost_calculator.calculate_cost();
+        double new_cost = cost_calculator.get_cost();
+        double best_cost = solution_manager.get_best_solution().get_cost();
+
+        if (new_cost < best_cost) {
+            solution_manager.keep_best_solution();
+            std::cout<<"New cost is better than best cost"<<best_cost<<std::endl;
+        }else{
+            solution_manager.switch_to_best_solution();
+            std::cout<<"New cost is worse than best cost rollback (timing factor)"<<best_cost<<std::endl;
+        }
+        if(runtime.is_timeout()){
+            break;
+        }
     }
+    solution_manager.switch_to_best_solution();
 }
 
 int calculate_distance(const std::pair<int, int>& node1, const std::pair<int, int>& node2) {

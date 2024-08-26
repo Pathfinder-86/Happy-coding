@@ -89,6 +89,7 @@ public:
 
     // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
     int cluster_cells(const std::vector<int> &cell_ids); 
+    int cluster_cells_without_check(const std::vector<int> &cell_ids); 
     // return 0: success , return 1: legalize fail, return 2: no ff target to decluster,return 3: no ff for decluster, return 4: others
     int decluster_cells(int cid);    
 
@@ -164,6 +165,8 @@ public:
     }
     bool check_cells_location();
     void reassign_pins_cell_id();
+    int swap_ff(int cell_id,int new_lib_cell_id);
+    int cluster_clk_group(const std::vector<std::vector<int>> &clustering_res);
 private:
     // sequential cells
     std::vector<Pin> pins;
