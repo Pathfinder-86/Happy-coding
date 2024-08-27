@@ -25,7 +25,7 @@ namespace estimator {
                 return area_cost;
             }
             double get_total_cost() const {
-                return timing_cost + power_cost + area_cost;
+                return power_cost + area_cost;
             }
     };
     class FFLibcellCostManager {        
@@ -69,13 +69,6 @@ namespace estimator {
                     return std::vector<FFLibCellCost>();
                 }else{
                     return bits_ff_libcells_sort_by_timing_cost.at(bits);
-                }
-            }
-            int get_best_total_cost_lib_cell_id(int bits) const{
-                if(bits_ff_libcells_sort_by_total_cost.find(bits) == bits_ff_libcells_sort_by_total_cost.end()){
-                    return -1;
-                }else{
-                    return bits_ff_libcells_sort_by_total_cost.at(bits).front().get_id();
                 }
             }
             int get_best_power_cost_lib_cell_id(int bits) const{
@@ -128,6 +121,10 @@ namespace estimator {
             const std::vector<int>& get_best_libcell_sorted_by_bits() const{
                 return best_libcell_sorted_by_bits;
             }
+            const FFLibCellCost& get_ff_libcell_cost(int lib_cell_id) const{
+                return ff_libcells_cost.at(lib_cell_id);
+            }
+            double get_cluster_cost_change(const std::vector<int> &cluster) const;            
         private:
             std::unordered_map<int,FFLibCellCost> ff_libcells_cost; // lib_cell_id -> cost            
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_cost;

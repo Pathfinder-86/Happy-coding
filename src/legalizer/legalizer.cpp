@@ -7,6 +7,7 @@
 #include <climits>
 #include <../runtime/runtime.h>
 #include <iostream>
+#include "utilization.h"
 
 namespace legalizer{
 
@@ -115,18 +116,18 @@ void Legalizer::init_blockage(){
         }
     }
     sites = new_sites;
-    sort_sites_by_y_then_x();
-    // adjust site_id since some sites are removed
-    for(int i=0;i<sites.size();i++){
-        sites.at(i).set_id(i);
-    }
+}
 
-    for(const auto &it : sites){        
-        empty_sites_id.insert(it.get_id());
-        sites_id_to_xy_map[it.get_id()] = std::make_pair(it.get_x(),it.get_y());
-        sites_xy_to_id_map[std::make_pair(it.get_x(),it.get_y())] = it.get_id();
+void Legalizer::init_remining_sites(){
+    for(int i=0;i<sites.size();i++){
+        sites[i].set_id(i);
+    }
+    for(const Site &site : sites){
+        empty_sites_id.insert(site.get_id());
+        sites_xy_to_id_map[std::make_pair(site.get_x(),site.get_y())] = site.get_id();        
     }
 }
+
 
 void Legalizer::sort_rows_by_y(){
     std::sort(rows.begin(),rows.end(),[](const Row &a, const Row &b){
@@ -222,8 +223,9 @@ void Legalizer::init(){
     runtime_manager.get_runtime();    
     sort_rows_by_y();
     init_blockage();
-    std::cout<<"LEGAL:: init_blockage finish"<<std::endl;
-    runtime_manager.get_runtime();    
+    sort_sites_by_y_then_x();
+    //remove_overflow_bins(); ??? move some ff ?
+    init_remining_sites();    
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     not_on_site_cells_id = netlist.get_sequential_cells_id();
     place_available_cells_on_empty_sites();    
@@ -253,6 +255,35 @@ bool Legalizer::extend_at_site_id(const int root_site_id,std::vector<int> &sites
         }
     }
     return true;
+}
+
+void Legalizer::remove_overflow_bins(){
+    UtilizationCalculator &utilization_calculator = UtilizationCalculator::get_instance();
+    const std::set<std::pair<int, int>> &overflow_bins_id = utilization_calculator.get_overflow_bins_id();
+    int bin_width_int = utilization_calculator.get_bin_width_int();
+    int bin_height_int = utilization_calculator.get_bin_height_int();
+    for(const auto &it : overflow_bins_id){
+        int x = it.first * bin_width_int;
+        int y = it.second * bin_height_int;
+        int rx = x + bin_width_int;
+        int ry = y + bin_height_int;
+        
+        // if sites overlap with the bin, remove the site
+        // sites is sorted by y then x
+        for( auto it = sites.begin(); it != sites.end();){
+            Site &site = *it;            
+            if(site.get_y() >= ry){
+                break;
+            }
+            if(site.get_x() >= rx || site.get_rx() <= x || site.get_y() >= ry || site.get_ry() <= y){
+                it++;
+                continue;
+            }
+            std::cout<<"LEGAL:: remove site ("<<site.get_x()<<","<<site.get_y()<<")"<<std::endl;
+            it = sites.erase(it);
+        }
+
+    }
 }
 
 bool Legalizer::try_extend_at_multiple_sites_id(const std::vector<int> &root_sites_id,int x_site_num,int y_site_num,std::vector<int> &ret_sites_id){    

@@ -60,7 +60,6 @@ void TimingNode::update_slack_since_cell_move(){
     double new_placement_delay = 0.0;
     new_placement_delay = timer.get_displacement_delay_factor() * (abs(pin.get_x() - d_pin_input_pin_location.first) + abs(pin.get_y() - d_pin_input_pin_location.second));
     
-    
     add_slack( get_input_pin_d_pin_placement_delay() - new_placement_delay);
     set_input_pin_d_pin_placement_delay(new_placement_delay);
 
@@ -311,6 +310,22 @@ void Timer::update_timing(int cell_id){
     update_slack_since_cell_move(cell_id);
     update_slack_since_libcell_change(cell_id);
     cell.calculate_slack();
+    
+    // update affected d_pins cell
+    std::unordered_set<int> affected_cells_id_set;
+    for(int q_pin_id : cell.get_output_pins_id()){
+        const TimingNode &node = timing_nodes.at(q_pin_id);
+        for(int d_pin_id : node.get_affected_d_pins()){
+            const circuit::Pin &pin = netlist.get_pin(d_pin_id);
+            int cell_id = pin.get_cell_id();
+            affected_cells_id_set.insert(cell_id);
+        }
+    }
+
+    for(int affected_cell_id : affected_cells_id_set){
+        circuit::Cell &affected_cell = netlist.get_mutable_cell(affected_cell_id);
+        affected_cell.calculate_slack();
+    }
 }
 
 void Timer::update_timing(){
@@ -332,5 +347,46 @@ void Timer::switch_to_other_solution(const std::unordered_map<int,TimingNode> &t
     }
 }
 
+void Timer::update_timing_by_cells_id(const std::vector<int> &cells_id){
+    for(int cell_id : cells_id){
+        update_timing(cell_id);
+    }
+}
+
+double Timer::calculate_timing_cost_after_cluster(int cell_id, std::unordered_set<int> &affected_cells_id_set){
+    double cost_change = 0.0;
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
+    const design::Design &design = design::Design::get_instance();
+    double timing_factor = design.get_timing_factor();
+    update_slack_since_cell_move(cell_id);
+    update_slack_since_libcell_change(cell_id);
+    affected_cells_id_set.insert(cell_id);
+
+    // update affected d_pins cell    
+    for(int q_pin_id : cell.get_output_pins_id()){
+        const TimingNode &node = timing_nodes.at(q_pin_id);
+        for(int d_pin_id : node.get_affected_d_pins()){
+            const circuit::Pin &pin = netlist.get_pin(d_pin_id);
+            int cell_id = pin.get_cell_id();
+            affected_cells_id_set.insert(cell_id);
+        }
+    }
+
+    for(int affected_cell_id : affected_cells_id_set){
+        circuit::Cell &affected_cell = netlist.get_mutable_cell(affected_cell_id);
+        double original_slack = affected_cell.get_slack();
+        affected_cell.calculate_slack();
+        double new_slack = affected_cell.get_slack();
+        if(new_slack >= 0 && original_slack < 0){
+            cost_change += original_slack * timing_factor;
+        }
+        if(new_slack < 0){
+            double slack = std::min(0.0,original_slack);
+            cost_change += -(new_slack-slack) * timing_factor;
+        }
+    }
+    return cost_change;
+}
 
 } // namespace timer

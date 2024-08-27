@@ -4,94 +4,152 @@
 #include "../design/design.h"
 #include "../legalizer/utilization.h"
 #include "../design/libcell.h"
+#include "lib_cell_evaluator.h"
 namespace estimator{
+
+void CostCalculator::set_factors(){
+    const design::Design& design = design::Design::get_instance();
+    timing_factor = design.get_timing_factor();
+    power_factor = design.get_power_factor();
+    area_factor = design.get_area_factor();
+    utilization_factor = design.get_utilization_factor();
+}
 
 void CostCalculator::calculate_cost(){
     reset();    
-    const design::Design& design = design::Design::get_instance();
-    double timing_factor = design.get_timing_factor();
-    double power_factor = design.get_power_factor();
-    double area_factor = design.get_area_factor();
-    double utilization_factor = design.get_utilization_factor();
-
+    const FFLibcellCostManager& ff_libcell_cost_manager = FFLibcellCostManager::get_instance();
     circuit::Netlist& netlist = circuit::Netlist::get_instance();
     const std::vector<circuit::Cell>& cells = netlist.get_cells();
     for(int cell_id : netlist.get_sequential_cells_id()){                 
         const circuit::Cell& cell = cells.at(cell_id);     
-        double cell_timing_cost = 0.0; 
+        double cell_timing_cost = 0.0;
         double slack = cell.get_slack();
         if(slack < 0){
-            cell_timing_cost = timing_factor * std::abs(slack);
-        }            
-        double cell_power_cost = power_factor * cell.get_power();
-        double cell_area_cost = area_factor * cell.get_area();        
-        timing_cost += cell_timing_cost;
-        area_cost += cell_area_cost;
-        power_cost += cell_power_cost;
+            cell_timing_cost = -slack * timing_factor;
+        }
+        int lib_cell_id = cell.get_lib_cell_id();
+        const FFLibCellCost& lib_cell_cost = ff_libcell_cost_manager.get_ff_libcell_cost(lib_cell_id);
+        double cell_power_cost = lib_cell_cost.get_power_cost();
+        double cell_area_cost = lib_cell_cost.get_area_cost();
 
+        add_timing_cost(cell_timing_cost);
+        add_power_cost(cell_power_cost);
+        add_area_cost(cell_area_cost);
         sequential_cells_cost.push_back( CellCost(cell_id,cell_timing_cost,cell_power_cost,cell_area_cost) );
     }
-    // TODO:  add utilization cost
-    const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();
-    int overflow_bins = utilization.get_overflow_bins_num();
-    utilization_cost = utilization_factor * overflow_bins;
+
     std::cout<<"COSTCAL:: INIT"<<std::endl;
     std::cout << "Total Cost: " << get_cost() << std::endl;
-    std::cout << "Area Cost: " << area_cost << std::endl;
-    std::cout << "Power Cost: " << power_cost << std::endl;
-    std::cout << "Timing Cost: " << timing_cost << std::endl;
-    std::cout << "Utilization Cost: " << utilization_cost << std::endl;
+    std::cout << "Area Cost: " << get_area_cost() << std::endl;
+    std::cout << "Power Cost: " << get_power_cost() << std::endl;
+    std::cout << "Timing Cost: " << get_timing_cost() << std::endl;
+    std::cout << "Utilization Cost: " << get_utilization_cost() << std::endl;
     std::cout<<"COSTCAL:: END"<<std::endl;
 }
 
-void CostCalculator::calculate_cost_update_by_cells_id(const std::vector<int> &cells_id){  
-    const design::Design& design = design::Design::get_instance();
-    double timing_factor = design.get_timing_factor();
-    double power_factor = design.get_power_factor();
-    double area_factor = design.get_area_factor();
-    double utilization_factor = design.get_utilization_factor();
-
-    circuit::Netlist& netlist = circuit::Netlist::get_instance();
+void CostCalculator::update_cells_cost_after_clustering_skip_timer(const std::vector<int> &cells_id){  
+    const circuit::Netlist& netlist = circuit::Netlist::get_instance();
     const std::vector<circuit::Cell>& cells = netlist.get_cells();
-    for(int i=0;i<cells_id.size();i++){
+    for(int i=0;i<cells_id.size();i++){        
         int cell_id = cells_id[i];
-        double new_cell_area_cost = 0.0;
-        double new_cell_power_cost = 0.0;
+        const circuit::Cell& cell = cells.at(cell_id);                     
         if(i==0){            
-            const circuit::Cell& cell = cells.at(cell_id);
-            int lib_cell_id = cell.get_lib_cell_id();
-            const design::LibCell& lib_cell = design.get_lib_cell(lib_cell_id);
-            // SKIP TIMING COST
-            new_cell_power_cost = power_factor * lib_cell.get_power();
-            new_cell_area_cost = area_factor * lib_cell.get_area();      
-        }      
-        area_cost += (new_cell_area_cost - sequential_cells_cost[cell_id].get_area_cost());
-        power_cost += (new_cell_power_cost - sequential_cells_cost[cell_id].get_power_cost());
-        sequential_cells_cost[cell_id].set_area_cost(new_cell_area_cost);
-        sequential_cells_cost[cell_id].set_power_cost(new_cell_power_cost);
+            update_cell_cost_by_libcell_id(cell_id,cell.get_lib_cell_id());
+        }else{
+            update_cell_cost_been_clustered(cell_id);
+        }
     }
 }
 
-void CostCalculator::calculate_cost_rollback_by_cells_id(const std::vector<int> &cells_id){  
-    const design::Design& design = design::Design::get_instance();
-    double timing_factor = design.get_timing_factor();
-    double power_factor = design.get_power_factor();
-    double area_factor = design.get_area_factor();
-    double utilization_factor = design.get_utilization_factor();
-
+void CostCalculator::update_cells_cost_after_clustering(const std::vector<int> &cluster_cells_id, const std::vector<int> &timing_cells_id){
     const circuit::Netlist& netlist = circuit::Netlist::get_instance();
     const std::vector<circuit::Cell>& cells = netlist.get_cells();
-    for(int cell_id : cells_id){                 
+    for(int i=0;i<cluster_cells_id.size();i++){
+        int cell_id = cluster_cells_id[i];
+        const circuit::Cell& cell = cells.at(cell_id);
+        if(i==0){
+            update_cell_cost_by_libcell_id(cell_id,cell.get_lib_cell_id());
+        }else{
+            update_cell_cost_been_clustered(cell_id);
+        }
+    }
+    for(int i=0;i<timing_cells_id.size();i++){
+        int cell_id = timing_cells_id[i];
+        const circuit::Cell& cell = cells.at(cell_id);
+        update_cell_cost_by_slack(cell_id,cell.get_slack());
+    }
+}
+
+void CostCalculator::update_cell_cost_been_clustered(int cell_id){
+    add_timing_cost(-sequential_cells_cost[cell_id].get_timing_cost());
+    add_power_cost(-sequential_cells_cost[cell_id].get_power_cost());
+    add_area_cost(-sequential_cells_cost[cell_id].get_area_cost());
+    sequential_cells_cost[cell_id].set_zero();
+}
+
+void CostCalculator::update_cell_cost_by_slack(int cell_id,double slack){        
+    double new_cell_timing_cost = 0.0;
+    if(slack < 0){
+        new_cell_timing_cost = -slack * timing_factor;
+    }    
+
+    double original_cell_timing_cost = sequential_cells_cost[cell_id].get_timing_cost();
+    add_timing_cost(new_cell_timing_cost - original_cell_timing_cost);
+
+    sequential_cells_cost[cell_id].set_timing_cost(new_cell_timing_cost);        
+}
+
+void CostCalculator::update_cell_cost_by_libcell_id(int cell_id,int lib_cell_id){
+    const FFLibcellCostManager& ff_libcell_cost_manager = FFLibcellCostManager::get_instance();
+    const FFLibCellCost& lib_cell_cost = ff_libcell_cost_manager.get_ff_libcell_cost(lib_cell_id);
+    double new_cell_power_cost = lib_cell_cost.get_power_cost();
+    double new_cell_area_cost = lib_cell_cost.get_area_cost();
+
+    double original_cell_power_cost = sequential_cells_cost[cell_id].get_power_cost();
+    double original_cell_area_cost = sequential_cells_cost[cell_id].get_area_cost();
+
+    add_power_cost(new_cell_power_cost - original_cell_power_cost);
+    add_area_cost(new_cell_area_cost - original_cell_area_cost);
+
+    sequential_cells_cost[cell_id].set_area_cost(new_cell_area_cost);
+    sequential_cells_cost[cell_id].set_power_cost(new_cell_power_cost);
+}
+
+double CostCalculator::get_utilization_cost(){
+    const design::Design& design = design::Design::get_instance();
+    double utilization_factor = design.get_utilization_factor();
+    const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();
+    this->utilization_cost = utilization.get_overflow_bins_num() * utilization_factor;
+}
+
+void CostCalculator::rollack_timer_res(const std::vector<int> &cells_id){      
+    const circuit::Netlist& netlist = circuit::Netlist::get_instance();    
+    const std::vector<circuit::Cell>& cells = netlist.get_cells();
+    for(int cell_id : cells_id){
+        const circuit::Cell& cell = cells.at(cell_id);
+        double slack = cell.get_slack();
+        double new_cell_timing_cost = 0.0;
+        if(slack < 0){
+            new_cell_timing_cost = -slack * timing_factor;
+        }    
+        add_timing_cost(new_cell_timing_cost - sequential_cells_cost[cell_id].get_timing_cost());
+        sequential_cells_cost[cell_id].set_timing_cost(new_cell_timing_cost);                          
+    }
+}
+
+void CostCalculator::rollack_clustering_res(const std::vector<int> &cells_id){      
+    const circuit::Netlist& netlist = circuit::Netlist::get_instance();    
+    const std::vector<circuit::Cell>& cells = netlist.get_cells();
+    const FFLibcellCostManager &ff_libcell_cost_manager = FFLibcellCostManager::get_instance();
+    for(int cell_id : cells_id){
         const circuit::Cell& cell = cells.at(cell_id);
         int lib_cell_id = cell.get_lib_cell_id();
-        const design::LibCell& lib_cell = design.get_lib_cell(lib_cell_id);
-        // SKIP TIMING COST
-        double new_cell_power_cost = power_factor * lib_cell.get_power();
-        double new_cell_area_cost = area_factor * lib_cell.get_area();
-        area_cost += (new_cell_area_cost - sequential_cells_cost[cell_id].get_area_cost());
-        power_cost += (new_cell_power_cost - sequential_cells_cost[cell_id].get_power_cost());
-        sequential_cells_cost[cell_id].set_area_cost(new_cell_area_cost);
+        double new_cell_power_cost = ff_libcell_cost_manager.get_ff_libcell_cost(lib_cell_id).get_power_cost();
+        double new_cell_area_cost = ff_libcell_cost_manager.get_ff_libcell_cost(lib_cell_id).get_area_cost();
+        add_power_cost(new_cell_power_cost - sequential_cells_cost[cell_id].get_power_cost());
+        add_area_cost(new_cell_area_cost - sequential_cells_cost[cell_id].get_area_cost());
         sequential_cells_cost[cell_id].set_power_cost(new_cell_power_cost);
+        sequential_cells_cost[cell_id].set_area_cost(new_cell_area_cost);                
     }
 }
 

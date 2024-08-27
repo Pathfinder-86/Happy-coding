@@ -94,10 +94,12 @@ class Legalizer{
             }
         }
         void init();
+        void init_remining_sites();
         void check_init_placement_is_on_site();// ?
         bool check_on_site();
         bool legalize();
         void init_blockage();
+        void remove_overflow_bins();
         void place_available_cells_on_empty_sites();
         void place_available_cells_on_empty_sites_sort_by_slack();
         void move_unavailable_cells_to_empty_sites();
@@ -140,8 +142,7 @@ class Legalizer{
         std::unordered_map<int,std::vector<int>> row_id_to_sites_id_map; //const
         
         // quick site access, check
-        std::vector<Site> sites; // const
-        std::unordered_map<int,std::pair<int,int>> sites_id_to_xy_map; // const 
+        std::vector<Site> sites; // const        
         std::map<std::pair<int,int>,int> sites_xy_to_id_map; // const
         std::unordered_set<int> empty_sites_id; // accoring to netlist
 

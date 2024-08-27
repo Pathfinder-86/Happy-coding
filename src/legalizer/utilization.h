@@ -17,7 +17,7 @@ class UtilizationCalculator {
         int get_overflow_bins_num() const{
             return overflow_bins_id.size();
         }
-        bool try_add_cell_with_overflow_rollback(int cell_id);
+        double add_cell_cost_change(int cell_id);
         void add_cell(int cell_id);
         void remove_cell(int cell_id);
         const std::vector<std::vector<design::Bin>>& get_bins() const {
@@ -43,7 +43,8 @@ class UtilizationCalculator {
         int get_bin_height_int() const{
             return bin_height_int;
         }
-
+        double remove_cells_cost_change(const std::vector<int> &cells_id);
+        void print();
     private:
         std::vector<std::vector<design::Bin>> bins;
         std::vector<std::vector<design::Bin>> init_bins;

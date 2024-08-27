@@ -168,9 +168,8 @@ public:
     void reassign_pins_cell_id();
     int swap_ff(int cell_id,int new_lib_cell_id);
     int cluster_clk_group(const std::vector<std::vector<int>> &clustering_res);
-    void update_cell(const Cell &cell){
-        cells[cell.get_id()] = cell;
-    }
+    void update_cell(const Cell &cell);
+    std::pair<int,int> find_best_cell_new_location_according_to_timer(const std::vector<int> &cells_id);
 private:
     // sequential cells
     std::vector<Pin> pins;

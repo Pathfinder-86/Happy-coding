@@ -40,7 +40,7 @@ struct CellCost {
         }
         void set_area_cost(double area_cost){
             this->area_cost = area_cost;
-        }
+        }                
 };
 
 class CostCalculator{    
@@ -52,8 +52,9 @@ class CostCalculator{
             return instance;
         }
         void calculate_cost();
-        void calculate_cost_update_by_cells_id(const std::vector<int> &cells_id);
-        void calculate_cost_rollback_by_cells_id(const std::vector<int> &cells_id);
+        void update_cells_cost_after_clustering_skip_timer(const std::vector<int> &cells_id);
+        void rollack_clustering_res(const std::vector<int> &cells_id);
+        void rollack_timer_res(const std::vector<int> &cells_id);
         double get_cost() const {
             return timing_cost + power_cost + area_cost + utilization_cost;
         }
@@ -66,9 +67,25 @@ class CostCalculator{
         double get_area_cost() const {
             return area_cost;
         }
-        double get_utilization_cost() const {
-            return utilization_cost;
+        double get_utilization_cost();        
+        void set_timing_cost(double timing_cost){
+            this->timing_cost = timing_cost;
         }
+        void set_power_cost(double power_cost){
+            this->power_cost = power_cost;
+        }
+        void set_area_cost(double area_cost){
+            this->area_cost = area_cost;
+        }
+        void add_timing_cost(double timing_cost){
+            this->timing_cost += timing_cost;
+        }
+        void add_power_cost(double power_cost){
+            this->power_cost += power_cost;
+        }
+        void add_area_cost(double area_cost){
+            this->area_cost += area_cost;
+        }                       
         void reset(){
             timing_cost = 0.0;
             power_cost = 0.0;
@@ -79,10 +96,19 @@ class CostCalculator{
         const std::vector<CellCost>& get_sequential_cells_cost() const {
             return sequential_cells_cost;
         }
-        // sorted ?
+        void update_cell_cost_by_libcell_id(int cell_id,int lib_cell_id);
+        void update_cell_cost_by_slack(int cell_id,double slack);
+        void update_cell_cost_been_clustered(int cell_id);
+        void set_factors();
+        void init(){
+            set_factors();
+            calculate_cost();
+        }
+        void update_cells_cost_after_clustering(const std::vector<int> &clustering_cells_id,const std::vector<int> &timing_cells_id);
     private:
         double timing_cost,power_cost,area_cost,utilization_cost;
         std::vector<CellCost> sequential_cells_cost;
+        double timing_factor,power_factor,area_factor,utilization_factor;
 };
 }
 // namespace estimator

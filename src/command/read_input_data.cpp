@@ -323,7 +323,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             design.set_bin_size(x,y);
             double bin_max_utilization = 0.0;
             ss >> token >> bin_max_utilization;
-            design.set_bin_max_utilization(bin_max_utilization / 100. );            
+            design.set_bin_max_utilization(bin_max_utilization / 100. - 0.01 );
         }else if(token == "PlacementRows"){
             double x,y,site_width,site_height;
             int site_num;

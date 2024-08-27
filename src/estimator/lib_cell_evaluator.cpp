@@ -1,12 +1,33 @@
 #include "lib_cell_evaluator.h"
 #include "../design/design.h"
 #include <algorithm>
+#include "../circuit/netlist.h"
+#include "../circuit/cell.h"
 namespace estimator{
+
+double FFLibcellCostManager::get_cluster_cost_change(const std::vector<int> &cells_id) const{
+    double cost_change = 0.0;
+    const circuit::Netlist& netlist = circuit::Netlist::get_instance();
+    const std::vector<circuit::Cell>& cells = netlist.get_cells();
+    int sum_bits = 0;
+    for(int i=0;i<cells_id.size();i++){
+        int cell_id = cells_id[i];
+        const circuit::Cell& cell = cells.at(cell_id);
+        int lib_cell_id = cell.get_lib_cell_id();
+        double cost = get_lib_cell_cost(lib_cell_id);        
+        cost_change -= cost;        
+        sum_bits+=cell.get_bits();
+    }
+    int cluster_lib_cell_id = get_best_libcell_for_bit(sum_bits);
+    double cluster_cost = get_lib_cell_cost(cluster_lib_cell_id);
+    cost_change += cluster_cost;
+
+    return cost_change;
+}
 
 void FFLibcellCostManager::calculate_cost(){
     const design::Design& design = design::Design::get_instance();    
-    const std::vector<design::LibCell>& libcells = design.get_lib_cells();
-    double timing_factor = design.get_timing_factor();
+    const std::vector<design::LibCell>& libcells = design.get_lib_cells();    
     double power_factor = design.get_power_factor();
     double area_factor = design.get_area_factor();
 
@@ -19,8 +40,8 @@ void FFLibcellCostManager::calculate_cost(){
 
         int bits = libcells[i].get_bits();
         bits_num.insert(bits);
-        // ESTIMATE COST
-        double timing_cost = libcells[i].get_delay() * bits * 0.0;  /*timing_factor;*/
+        // delay
+        double timing_cost = libcells[i].get_delay();
         // REAL COST
         double power_cost = libcells[i].get_power() * power_factor;
         double area_cost = libcells[i].get_area() * area_factor;
@@ -33,8 +54,11 @@ void FFLibcellCostManager::sort_by_cost(){
     bits_ff_libcells_sort_by_total_cost = bits_ff_libcells_cost;    
     for(auto& it : bits_ff_libcells_sort_by_total_cost){
         std::sort(it.second.begin(),it.second.end(),[](const FFLibCellCost& a, const FFLibCellCost& b){
+            if(a.get_total_cost() == b.get_total_cost()){
+                return a.get_timing_cost() < b.get_timing_cost();
+            }
             return a.get_total_cost() < b.get_total_cost();
-        });
+        });        
     }
 
     bits_ff_libcells_sort_by_power_cost = bits_ff_libcells_cost;

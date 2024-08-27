@@ -114,7 +114,7 @@ int Netlist::cluster_cells(const std::vector<int> &cells_id){
 
     // Get best cost flip-flop
     const estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();
-    int best_lib_cell_id = ff_libcell_cost_manager.get_best_total_cost_lib_cell_id(new_bits);
+    int best_lib_cell_id = ff_libcell_cost_manager.get_best_libcell_for_bit(new_bits);
     
     if(best_lib_cell_id == -1){
         std::cout<<"CLSUTER:: Cannot find a flip-flop with " << new_bits << " bits\n";
@@ -126,7 +126,7 @@ int Netlist::cluster_cells(const std::vector<int> &cells_id){
 
 
 int Netlist::cluster_cells_without_check(const std::vector<int> &cells_id){    
-    
+    const estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();
     // get new lib_cell
     int new_bits = 0;
     for(int cell_id : cells_id){
@@ -134,15 +134,15 @@ int Netlist::cluster_cells_without_check(const std::vector<int> &cells_id){
         new_bits += cell.get_bits();
     }
 
-    // Get best cost flip-flop
-    const estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();
-    int best_lib_cell_id = ff_libcell_cost_manager.get_best_total_cost_lib_cell_id(new_bits);
-
+    // Get best cost flip-flop    
+    int best_lib_cell_id = ff_libcell_cost_manager.get_best_libcell_for_bit(new_bits);    
+    
     const Cell &parent_cell = get_cell(cells_id.at(0));
     if(parent_cell.get_lib_cell_id() == best_lib_cell_id){
-        //don't change
+        // don't change
         return 2;
-    }
+    }       
+
     return try_legal_and_modify_circuit_since_merge_cell_skip_timer(cells_id, best_lib_cell_id);
 }
 
@@ -240,9 +240,6 @@ int Netlist::cluster_clk_group(const std::vector<std::vector<int>> &clustering_r
     return 0;
 }
 
-
-
-
 // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
 int Netlist::try_legal_and_modify_circuit_since_merge_cell(const std::vector<int> &cells_id, const int new_lib_cell_id){
     // parent
@@ -334,13 +331,42 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell(const std::vector<int
     return 0;
 }
 
+std::pair<int,int> Netlist::find_best_cell_new_location_according_to_timer(const std::vector<int> &cells_id){
+    const timer::Timer &timer = timer::Timer::get_instance();
+    int node = 0;
+    int new_x = 0;
+    int new_y = 0;
+    for(int cell_id : cells_id){
+        const Cell &cell = get_cell(cell_id);
+        for(int input_pin_id : cell.get_input_pins_id()){
+            const timer::TimingNode &timing_node = timer.get_timing_node(input_pin_id);
+            const std::pair<int,int> d_pin_input_pin_location = timing_node.get_d_pin_input_pin_location();
+            new_x += d_pin_input_pin_location.first;
+            new_y += d_pin_input_pin_location.second;
+            node++;            
+        }
+        for(int output_pin_id : cell.get_output_pins_id()){
+            const timer::TimingNode &timing_node = timer.get_timing_node(output_pin_id);
+            const std::pair<int,int> q_pin_output_pin_location = timing_node.get_q_pin_output_pin_location();
+            new_x += q_pin_output_pin_location.first;
+            new_y += q_pin_output_pin_location.second;
+            node++;
+        }
+    }
+    new_x /= node;
+    new_y /= node;
+    return std::make_pair(new_x,new_y);
+}   
+
 // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
 int Netlist::try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std::vector<int> &cells_id, const int new_lib_cell_id){
     // parent
     int parent_id = cells_id.at(0);
     Cell& cell1 = get_mutable_cell(parent_id);
-    // new cell location
-    // TODO: aummption: center of cells_id    
+    //const std::pair<int,int> new_cell_location = find_best_cell_new_location_according_to_timer(cells_id);
+    //cell1.set_x(new_cell_location.first);
+    //cell1.set_y(new_cell_location.second);
+
     int new_cell_x = 0,new_cell_y = 0;
     for(int cell_id : cells_id){
         const Cell &cell = get_cell(cell_id);
@@ -351,6 +377,7 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std:
     new_cell_y /= cells_id.size();
     cell1.set_x(new_cell_x);
     cell1.set_y(new_cell_y);
+
 
     // set cell1 to new_lib_cell
     cell1.set_lib_cell_id(new_lib_cell_id);
@@ -368,13 +395,8 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std:
     if(!legalizer.legalize()){
         std::cout<<"CLSUTER:: legalization fail\n";
         return 1;
-        // need to find legalization fail reason and adjust circuit to cluster more ff
     }
-
-    if(cells_id.size() == 1){
-        return 0;
-    }
-
+    
     // handle pins mapping    
     std::vector<int> new_cell_input_pins_id;
     std::vector<int> new_cell_output_pins_id;
@@ -389,9 +411,9 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std:
     cell1.set_input_pins_id(new_cell_input_pins_id);
     cell1.set_output_pins_id(new_cell_output_pins_id);
 
-    // skip timer don't care pin location and timing
-    //std::vector<std::pair<double, double>> new_lib_cell_input_pins_position = new_lib_cell.get_input_pins_position();
-    //std::vector<std::pair<double, double>> new_lib_cell_output_pins_position = new_lib_cell.get_output_pins_position();    
+    
+    std::vector<std::pair<double, double>> new_lib_cell_input_pins_position = new_lib_cell.get_input_pins_position();
+    std::vector<std::pair<double, double>> new_lib_cell_output_pins_position = new_lib_cell.get_output_pins_position();    
 
     int bits = new_cell_input_pins_id.size();
     for(int i = 0; i < bits; i++){
@@ -399,6 +421,10 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std:
         int output_pin_id = new_cell_output_pins_id.at(i);
         Pin &input_pin = get_mutable_pin(input_pin_id);
         Pin &output_pin = get_mutable_pin(output_pin_id);
+        input_pin.set_offset_x(new_lib_cell_input_pins_position.at(i).first);
+        input_pin.set_offset_y(new_lib_cell_input_pins_position.at(i).second);
+        input_pin.set_x(cell1.get_x() + new_lib_cell_input_pins_position.at(i).first);
+        input_pin.set_y(cell1.get_y() + new_lib_cell_input_pins_position.at(i).second);
         input_pin.set_cell_id(parent_id); 
         output_pin.set_cell_id(parent_id);
     }        
@@ -436,8 +462,8 @@ int Netlist::decluster_cells(int id){
     int new_bits1 = origin_bits / 2;
     int new_bits2 = origin_bits - new_bits1;
 
-    int best_lib_cell_id1 = ff_libcell_cost_manager.get_best_total_cost_lib_cell_id(new_bits1);
-    int best_lib_cell_id2 = ff_libcell_cost_manager.get_best_total_cost_lib_cell_id(new_bits2);
+    int best_lib_cell_id1 = ff_libcell_cost_manager.get_best_libcell_for_bit(new_bits1);
+    int best_lib_cell_id2 = ff_libcell_cost_manager.get_best_libcell_for_bit(new_bits2);
     
     if(best_lib_cell_id1 == -1){
         std::cout<<"DECLSUTER:: Cannot find a flip-flop with " << new_bits1 << " bits\n";
@@ -557,6 +583,17 @@ int Netlist::modify_circuit_since_divide_cell(int cell_id, const int new_lib_cel
     timer.update_timing(cell_id);
     timer.update_timing(new_cell_id);
     return 0;
+}
+
+void Netlist::update_cell(const Cell &cell){
+    int cell_id = cell.get_id();
+    cells[cell_id] = cell;
+    for(int pin_id : cell.get_input_pins_id()){
+        pins[pin_id].set_cell_id(cell_id);
+    }
+    for(int pin_id : cell.get_output_pins_id()){
+        pins[pin_id].set_cell_id(cell_id);
+    }
 }
 
 void Netlist::reassign_pins_cell_id(){

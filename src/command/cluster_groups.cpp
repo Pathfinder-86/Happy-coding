@@ -26,7 +26,7 @@ void CommandManager::kmeans_cluster(){
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
     const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();
-    
+    timer::Timer &timer = timer::Timer::get_instance();
 
     std::vector<std::pair<int,int>> clk_groups_id_size;
     for(const auto &clk_group_id_ff_cell_ids : clk_group_id_to_ff_cell_ids){
@@ -89,44 +89,105 @@ void CommandManager::kmeans_cluster(){
         }
 
         for(const auto &cluster : clustering_res){
-            // remove in utilization first since we can't get cell original position and size after clustering
-            utilization_calculator.remove_cells(cluster);
-            // try cluster
+            // "Utilization change"
+            std::cout<<"Try cluster:";
+            for(int cid : cluster){
+                const circuit::Cell &cell = netlist.get_cell(cid);
+                int bits = cell.get_bits();
+                std::cout<<cid<<"("<<bits<<") ";
+            }
+            std::cout<<std::endl;
+            
+            
+            double remove_utilization_cost_change =  utilization_calculator.remove_cells_cost_change(cluster);
+            double cluster_cost_change = ff_libcells_cost_manager.get_cluster_cost_change(cluster);            
+            // "Netlist and legalizer change"
             int cluster_res = netlist.cluster_cells_without_check(cluster);
 
             if(cluster_res == 0){
-                std::cout<<"Cluster success"<<std::endl;
+                std::cout<<"cluster and legal success"<<std::endl;
             }else if(cluster_res == 1){
                 std::cout<<"Cluster fail due to legal rollback this cluster"<<std::endl;
-                solution_manager.rollack_best_solution_by_cells_id(cluster);
-                // recover original utilization
+                // "Netlist and legalizer rollback"
+                solution_manager.rollack_clustering_res_using_best_solution_skip_timer(cluster);
+                // "Utilization recover"
                 utilization_calculator.add_cells(cluster);
                 continue;
             }else if(cluster_res == 2){
-                std::cout<<"single bit don't change"<<std::endl;
-                continue;
-            }
-
-            // check utilization
-            int first_cell_id = cluster[0];
-            bool utilization_valid = utilization_calculator.try_add_cell_with_overflow_rollback(first_cell_id);
-            if(!utilization_valid){
-                std::cout<<"Cluster fail due to utilization overflow"<<std::endl;
-                solution_manager.rollack_best_solution_by_cells_id(cluster);
-                // recover original utilization
+                // swap_ff but it's already the best ff
+                // "Netlist and legalizer have no change"
+                // "Utilization recover"
                 utilization_calculator.add_cells(cluster);
                 continue;
             }
 
-            cost_calculator.calculate_cost_update_by_cells_id(cluster);
+            int parent_cell_id = cluster[0];
+            // check utilization: if there are new bins overflow
+            // "Utilization change"            
+            double add_utilization_cost_change = utilization_calculator.add_cell_cost_change(parent_cell_id);
+            double utilization_cost_change = add_utilization_cost_change + remove_utilization_cost_change;
+            
+            // timer: update_timing and check calculate cost change
+            // "Timing change"
+            std::unordered_set<int> affected_timing_cells_id_set;
+            double timing_cost_change = timer.calculate_timing_cost_after_cluster(parent_cell_id,affected_timing_cells_id_set);
+            const std::vector<int> &affected_timing_cells_id = std::vector<int>(affected_timing_cells_id_set.begin(),affected_timing_cells_id_set.end());
+            
+            std::cout<<"Clustered res: cluster_cost_change:"<<cluster_cost_change<<" utilization_cost_change:"<<utilization_cost_change<<" timing_cost_change:"<<timing_cost_change<<std::endl;
+            double cost_change = cluster_cost_change + utilization_cost_change + timing_cost_change;
+            if(cost_change <= 0){
+                std::cout<<"Good cluster: benefit:"<<cost_change<<std::endl;                
+                // commit solution
+                // "Update cost"   (power,area cost/ timing cost)                
+                cost_calculator.update_cells_cost_after_clustering(cluster,affected_timing_cells_id);            
+                // DEBUG START
+                double origin_best_cost = solution_manager.get_best_solution().get_cost();
+                double new_cost = cost_calculator.get_cost();
+                std::cout<<"New cost:"<<new_cost<<" Best cost:"<<origin_best_cost<<std::endl;
+                if(new_cost > origin_best_cost){
+                    std::cout<<"Something wrong"<<std::endl;
+                }       
+                // DEBUG END             
+
+                // "Sync best solution: update netlist"                
+                solution_manager.update_best_solution_after_clustering(cluster,new_cost);
+            }else{
+                std::cout<<"Bad cluster: benefit:"<<cost_change<<std::endl;
+                utilization_calculator.remove_cell(cluster[0]);
+                std::cout<<"Rollback utilization finish"<<std::endl;
+                // "Rollback netlist -> (legalizer, timer)"
+                solution_manager.rollack_clustering_res_using_best_solution(cluster);
+                std::cout<<"Rollback netlist finish"<<std::endl;
+                // "Rollback cost"
+                cost_calculator.rollack_clustering_res(cluster);
+                std::cout<<"Rollback cluster cost finish"<<std::endl;
+                cost_calculator.rollack_timer_res(affected_timing_cells_id);
+                std::cout<<"Rollback timer cost finish"<<std::endl;
+                // "Rollback Utilization"
+                utilization_calculator.add_cells(cluster);
+                std::cout<<"Rollback utilization2 finish"<<std::endl;
+            }
+
+
+            /*
             double new_cost = cost_calculator.get_cost();
             double best_cost = solution_manager.get_best_solution().get_cost();
 
             std::cout<<" New cost:"<<new_cost<<" Best cost:"<<best_cost<<std::endl;            
             if (new_cost < best_cost) {
+                cost_calculator.calculate_cost_update_by_cells_id_for_cluster(cluster);
                 solution_manager.update_best_solution_by_cells_id(cluster,new_cost);
                 std::cout<<"New cost is better than best cost"<<std::endl;
             }else{
+                int parent_cell_id = cluster[0];
+                 const circuit::Cell &cell = netlist.get_cell(parent_cell_id);
+                int bits = cell.get_bits();
+                int new_lib_cell_id = netlist.get_cell(parent_cell_id).get_lib_cell_id();
+                const design::LibCell &lib_cell = design::Design::get_instance().get_lib_cells().at(cell.get_lib_cell_id());
+                const std::string &lib_cell_name = lib_cell.get_name();
+                double lib_cell_cost = ff_libcells_cost_manager.get_lib_cell_cost(new_lib_cell_id);
+                std::cout<<"Clustered:"<<parent_cell_id<<"["+lib_cell_name+"("<<bits<<")] lib_cell_cost:"<<lib_cell_cost<<std::endl;
+
                 solution_manager.rollack_best_solution_by_cells_id(cluster);
                 cost_calculator.calculate_cost_rollback_by_cells_id(cluster);
                 std::cout<<"New cost is worse than best cost rollback why???"<<std::endl;
@@ -134,47 +195,24 @@ void CommandManager::kmeans_cluster(){
                 for(int cell_id : cluster){
                     const circuit::Cell &cell = netlist.get_cell(cell_id);
                     int bits = cell.get_bits();
-                    const design::LibCell &lib_cell = design::Design::get_instance().get_lib_cells().at(cell.get_lib_cell_id());
+                    int new_lib_cell_id = cell.get_lib_cell_id();
+                    const design::LibCell &lib_cell = design::Design::get_instance().get_lib_cells().at(new_lib_cell_id);
                     const std::string &lib_cell_name = lib_cell.get_name();
-                    std::cout<<cell_id<<"["+lib_cell_name+"("<<bits<<")] ";
+                    double lib_cell_cost = ff_libcells_cost_manager.get_lib_cell_cost(new_lib_cell_id);
+                    std::cout<<"Rollback:"<<cell_id<<"["+lib_cell_name+"("<<bits<<")] lib_cell_cost:"<<lib_cell_cost<<" ";
                 }
                 std::cout<<std::endl;
             }
+            */
             if(runtime.is_timeout()){
                 break;
             }
         } 
         if(runtime.is_timeout()){
             break;
-        } 
-        
-        /* 
-        clk group cluster commit STUCK
-        int cluster_clk_group_res = netlist.cluster_clk_group(clustering_res);
-        if(cluster_clk_group_res == 0){
-            std::cout<<"Cluster success"<<std::endl;
-        }else if(cluster_clk_group_res == -1){
-            std::cout<<"Cluster fail due to legal rollback"<<std::endl;
-            solution_manager.switch_to_best_solution();
-            continue;
-        }
-
-        cost_calculator.calculate_cost();
-        double new_cost = cost_calculator.get_cost();
-        double best_cost = solution_manager.get_best_solution().get_cost();
-        std::cout<<" New cost:"<<new_cost<<" Best cost:"<<best_cost<<std::endl;
-        if (new_cost < best_cost) {
-            solution_manager.keep_best_solution();
-            std::cout<<"New cost is better than best cost"<<std::endl;
-        }else{
-            solution_manager.switch_to_best_solution();
-            std::cout<<"New cost is worse than best cost rollback"<<std::endl;
-        }
-        if(runtime.is_timeout()){
-            break;
-        }
-        */
+        }         
     }
+    utilization_calculator.print();
 }
 
 std::vector<std::vector<int>> divide_into_matching_cluster_by_y_order(const std::vector<int> &cells_id,int cell_bits,const std::vector<int> &matching_res,const std::vector<int> &best_libcell_sorted_by_bits){    

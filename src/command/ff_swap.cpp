@@ -20,7 +20,7 @@ void CommandManager::swap_ff(){
         const circuit::Cell &cell = netlist.get_cell(cid);
         int bits = cell.get_bits();
         int lib_cell_id = cell.get_lib_cell_id();
-        int best_lib_cell_id = ff_libcells_cost_manager.get_best_total_cost_lib_cell_id(bits);
+        int best_lib_cell_id = ff_libcells_cost_manager.get_best_libcell_for_bit(bits);
         if(lib_cell_id == best_lib_cell_id){
             continue;
         }

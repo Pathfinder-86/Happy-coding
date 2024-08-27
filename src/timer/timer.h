@@ -128,10 +128,14 @@ public:
     void update_slack_since_libcell_change(int cell_id);
     // banking and debanking
     void update_timing(int cell_id);
+    void update_timing_by_cells_id(const std::vector<int> &cells_id);
     // all
     void update_timing();
     // mutable
     TimingNode& get_mutable_timing_node(int pin_id){
+        return timing_nodes.at(pin_id);
+    }
+    const TimingNode& get_timing_node(int pin_id) const{
         return timing_nodes.at(pin_id);
     }
     std::vector<int> dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin_output_pin_id,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay, const double q_pin_delay);    
@@ -144,6 +148,7 @@ public:
     }
     void write_init_timing_data();
     void create_timing_graph_by_read_data();
+    double calculate_timing_cost_after_cluster(int cell_id, std::unordered_set<int> &affected_cells_id_set);
 private:
     // slack on each node
     std::unordered_map<int,TimingNode> timing_nodes;    
