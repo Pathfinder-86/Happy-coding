@@ -32,7 +32,7 @@ void SolutionManager::switch_to_other_solution(const Solution &solution){
     CostCalculator &cost_calculator = CostCalculator::get_instance();
     netlist.switch_to_other_solution(solution.get_cells(),solution.get_sequential_cells_id(),solution.get_clk_group_id_to_ff_cell_ids(),solution.get_ff_cell_id_to_clk_group_id());
     legalizer.switch_to_other_solution(solution.get_cell_id_to_site_id_map());    
-    timer.switch_to_other_solution(solution.get_timing_nodes());
+    timer.switch_to_other_solution(solution.get_d_pins_node(),solution.get_q_pins_node(),solution.get_input_delay_nodes(),solution.get_output_delay_nodes());
     legalizer::UtilizationCalculator &utilization = legalizer::UtilizationCalculator::get_instance();
     utilization.update_bins_utilization();
     cost_calculator.calculate_cost();

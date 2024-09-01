@@ -1,7 +1,7 @@
 #ifndef COST_H
 #define COST_H
 #include <vector>
-
+#include <iostream>
 namespace estimator {
 
 struct CellCost {
@@ -45,7 +45,7 @@ struct CellCost {
 
 class CostCalculator{    
     private:
-        CostCalculator():timing_cost(0.0),power_cost(0.0),area_cost(0.0),utilization_cost(0.0){}
+        CostCalculator():timing_cost(0.0),power_cost(0.0),area_cost(0.0){}
     public:
         static CostCalculator& get_instance(){
             static CostCalculator instance;
@@ -56,7 +56,8 @@ class CostCalculator{
         void rollack_clustering_res(const std::vector<int> &cells_id);
         void rollack_timer_res(const std::vector<int> &cells_id);
         double get_cost() const {
-            return timing_cost + power_cost + area_cost + utilization_cost;
+            std::cout << "timing_cost: " << timing_cost << " power_cost: " << power_cost << " area_cost: " << area_cost << " utilization_cost: " << get_utilization_cost() << std::endl;
+            return timing_cost + power_cost + area_cost + get_utilization_cost();
         }
         double get_timing_cost() const {
             return timing_cost;
@@ -67,7 +68,7 @@ class CostCalculator{
         double get_area_cost() const {
             return area_cost;
         }
-        double get_utilization_cost();        
+        double get_utilization_cost() const;
         void set_timing_cost(double timing_cost){
             this->timing_cost = timing_cost;
         }
@@ -90,7 +91,6 @@ class CostCalculator{
             timing_cost = 0.0;
             power_cost = 0.0;
             area_cost = 0.0;
-            utilization_cost = 0.0;
             sequential_cells_cost.clear();
         } 
         const std::vector<CellCost>& get_sequential_cells_cost() const {
@@ -106,7 +106,7 @@ class CostCalculator{
         }
         void update_cells_cost_after_clustering(const std::vector<int> &clustering_cells_id,const std::vector<int> &timing_cells_id);
     private:
-        double timing_cost,power_cost,area_cost,utilization_cost;
+        double timing_cost,power_cost,area_cost;
         std::vector<CellCost> sequential_cells_cost;
         double timing_factor,power_factor,area_factor,utilization_factor;
 };

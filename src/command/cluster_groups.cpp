@@ -27,6 +27,7 @@ void CommandManager::kmeans_cluster(){
     legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
     const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();
     timer::Timer &timer = timer::Timer::get_instance();
+    const design::Design &design = design::Design::get_instance();
 
     std::vector<std::pair<int,int>> clk_groups_id_size;
     for(const auto &clk_group_id_ff_cell_ids : clk_group_id_to_ff_cell_ids){
@@ -129,10 +130,20 @@ void CommandManager::kmeans_cluster(){
             
             // timer: update_timing and check calculate cost change
             // "Timing change"
-            std::unordered_set<int> affected_timing_cells_id_set;
-            double timing_cost_change = timer.calculate_timing_cost_after_cluster(parent_cell_id,affected_timing_cells_id_set);
-            const std::vector<int> &affected_timing_cells_id = std::vector<int>(affected_timing_cells_id_set.begin(),affected_timing_cells_id_set.end());
-            
+            double clustered_cost_change = 0.0;            
+            for(int i = 1;i<cluster.size();i++){               
+                int cell_id = cluster[i];
+                circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
+                double slack = cell.get_slack();
+                if(slack < 0){
+                    clustered_cost_change += slack * design.get_timing_factor();
+                }
+                cell.set_slack(0.0);
+            }
+            std::vector<int> affected_timing_cells_id;
+            double affected_timing_cost = timer.calculate_timing_cost_after_cluster(cluster,affected_timing_cells_id);
+            double timing_cost_change = affected_timing_cost + clustered_cost_change;
+            std::cout<<"Timing cost change:"<<timing_cost_change<<" clustered_cost_change:"<<clustered_cost_change<<" affected_timing_cost:"<<affected_timing_cost<<std::endl;                        
             std::cout<<"Clustered res: cluster_cost_change:"<<cluster_cost_change<<" utilization_cost_change:"<<utilization_cost_change<<" timing_cost_change:"<<timing_cost_change<<std::endl;
             double cost_change = cluster_cost_change + utilization_cost_change + timing_cost_change;
             if(cost_change <= 0){

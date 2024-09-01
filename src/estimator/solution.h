@@ -13,7 +13,7 @@ namespace estimator {
     class Solution{
         public:
             Solution():cost(0.0){}
-            Solution(double cost,const std::vector<circuit::Cell> &cells,const std::unordered_map<int,timer::TimingNode> &timing_nodes,const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map):cost(cost),cells(cells),timing_nodes(timing_nodes),cell_id_to_site_id_map(cell_id_to_site_id_map){}
+            Solution(double cost,const std::vector<circuit::Cell> &cells,const std::unordered_map<int,timer::DpinNode> &dpin_nodes,const std::unordered_map<int,std::vector<int>> &cell_id_to_site_id_map):cost(cost),cells(cells),dpin_nodes(dpin_nodes),cell_id_to_site_id_map(cell_id_to_site_id_map){}
             bool is_available() const{
                 return !cells.empty();
             }       
@@ -26,7 +26,10 @@ namespace estimator {
                 this->sequential_cells_id = netlist.get_sequential_cells_id();
                 this->clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();
                 this->ff_cell_id_to_clk_group_id = netlist.get_ff_cell_id_to_clk_group_id();
-                this->timing_nodes = timer.get_timing_nodes();
+                this->dpin_nodes = timer.get_dpin_nodes();
+                this->qpin_nodes = timer.get_qpin_nodes();
+                this->input_delay_nodes = timer.get_input_delay_nodes();
+                this->output_delay_nodes = timer.get_output_delay_nodes();
                 this->cell_id_to_site_id_map = legalizer.get_cell_id_to_site_id_map();
             }
             double get_cost() const{
@@ -38,9 +41,18 @@ namespace estimator {
             const std::unordered_set<int>& get_sequential_cells_id() const{
                 return sequential_cells_id;
             }
-            const std::unordered_map<int,timer::TimingNode>& get_timing_nodes() const{
-                return timing_nodes;
+            const std::unordered_map<int,timer::DpinNode>& get_d_pins_node() const{
+                return dpin_nodes;
             }
+            const std::unordered_map<int,timer::QpinNode>& get_q_pins_node() const{
+                return qpin_nodes;
+            }
+            const std::unordered_map<int,timer::InputDelayNode>& get_input_delay_nodes() const{
+                return input_delay_nodes;
+            }
+            const std::unordered_map<int,timer::OutputDelayNode>& get_output_delay_nodes() const{
+                return output_delay_nodes;
+            }            
             const std::unordered_map<int,std::vector<int>>& get_cell_id_to_site_id_map() const{
                 return cell_id_to_site_id_map;
             } 
@@ -105,7 +117,10 @@ namespace estimator {
             std::unordered_map<int,std::unordered_set<int>> clk_group_id_to_ff_cell_ids;
             std::unordered_map<int,int> ff_cell_id_to_clk_group_id;            
             // timer
-            std::unordered_map<int,timer::TimingNode> timing_nodes;  
+            std::unordered_map<int,timer::DpinNode> dpin_nodes;            
+            std::unordered_map<int,timer::QpinNode> qpin_nodes;
+            std::unordered_map<int,timer::InputDelayNode> input_delay_nodes;
+            std::unordered_map<int,timer::OutputDelayNode> output_delay_nodes;
             // legalizer
             std::unordered_map<int,std::vector<int>> cell_id_to_site_id_map;
 

@@ -332,30 +332,7 @@ int Netlist::try_legal_and_modify_circuit_since_merge_cell(const std::vector<int
 }
 
 std::pair<int,int> Netlist::find_best_cell_new_location_according_to_timer(const std::vector<int> &cells_id){
-    const timer::Timer &timer = timer::Timer::get_instance();
-    int node = 0;
-    int new_x = 0;
-    int new_y = 0;
-    for(int cell_id : cells_id){
-        const Cell &cell = get_cell(cell_id);
-        for(int input_pin_id : cell.get_input_pins_id()){
-            const timer::TimingNode &timing_node = timer.get_timing_node(input_pin_id);
-            const std::pair<int,int> d_pin_input_pin_location = timing_node.get_d_pin_input_pin_location();
-            new_x += d_pin_input_pin_location.first;
-            new_y += d_pin_input_pin_location.second;
-            node++;            
-        }
-        for(int output_pin_id : cell.get_output_pins_id()){
-            const timer::TimingNode &timing_node = timer.get_timing_node(output_pin_id);
-            const std::pair<int,int> q_pin_output_pin_location = timing_node.get_q_pin_output_pin_location();
-            new_x += q_pin_output_pin_location.first;
-            new_y += q_pin_output_pin_location.second;
-            node++;
-        }
-    }
-    new_x /= node;
-    new_y /= node;
-    return std::make_pair(new_x,new_y);
+    return std::make_pair(0,0);
 }   
 
 // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others

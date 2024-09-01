@@ -14,6 +14,135 @@
 #include <sstream>
 namespace timer {
 
+
+void OutputDelayNode::propagate_delay(){
+    Timer &timer = Timer::get_instance();
+    for(int input_delay_node_id : input_delay_nodes_id){           
+        timer.get_mutable_input_delay_node(input_delay_node_id).update( get_delay() );
+    }
+    for(int d_pin_node_id : d_pin_nodes_id){            
+        timer.get_mutable_dpin_node(d_pin_node_id).update( get_delay() );
+    }
+}
+
+void OutputDelayNode::init_propagate_delay(){
+    Timer &timer = Timer::get_instance();
+    for(int input_delay_node_id : input_delay_nodes_id){           
+        timer.get_mutable_input_delay_node(input_delay_node_id).update_init_delay( get_delay() );
+    }
+    for(int d_pin_node_id : d_pin_nodes_id){            
+        timer.get_mutable_dpin_node(d_pin_node_id).init( get_delay() );
+    }
+}
+
+void InputDelayNode::update_to_pins_delay(){
+    Timer &timer = Timer::get_instance();
+    for(int to_pin_id : to_pins_id){
+        OutputDelayNode &output_delay_node = timer.get_mutable_output_delay_node(to_pin_id);
+        output_delay_node.update_delay(get_delay());
+    }
+}
+
+void InputDelayNode::update(double init_delay){
+    update_init_delay(init_delay);
+    Timer &timer = Timer::get_instance();
+    double displacement_delay = timer.get_displacement_delay_factor();
+    const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
+    const circuit::Pin &pin = original_netlist.get_pin(id);
+    double propagation_delay = 0.0;
+    if(get_is_from_pin_q_pin()){
+        const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+        const circuit::Pin &q_pin = netlist.get_pin(from_pin_id);                   
+        propagation_delay = displacement_delay * (abs(q_pin.get_x() - pin.get_x()) + abs(q_pin.get_y() - pin.get_y()));                
+    }else{
+        const circuit::Pin &output_pin = original_netlist.get_pin(from_pin_id);
+        propagation_delay = displacement_delay * (abs(output_pin.get_x() - pin.get_x()) + abs(output_pin.get_y() - pin.get_y()));
+    }
+    update_propagation_delay(propagation_delay);
+    update_to_pins_delay();    
+}
+
+void QpinNode::init_propagate_delay(){
+    timer::Timer &timer = Timer::get_instance();
+    for(int input_delay_node_id : input_delay_nodes_id){           
+        timer.get_mutable_input_delay_node(input_delay_node_id).update( get_delay() );
+    }
+    for(int d_pin_node_id : d_pin_nodes_id){            
+        timer.get_mutable_dpin_node(d_pin_node_id).init( get_delay() );
+    }
+}
+
+void QpinNode::propagate_delay(){
+    timer::Timer &timer = Timer::get_instance();
+    for(int input_delay_node_id : input_delay_nodes_id){           
+        timer.get_mutable_input_delay_node(input_delay_node_id).update( get_delay() );
+    }
+    for(int d_pin_node_id : d_pin_nodes_id){            
+        timer.get_mutable_dpin_node(d_pin_node_id).update( get_delay() );
+    }
+}
+void QpinNode::update(){
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    const circuit::Pin &pin = netlist.get_pin(id);
+    const circuit::Cell &cell = netlist.get_cell(pin.get_cell_id());
+    double q_pin_delay = cell.get_delay();
+    set_delay(q_pin_delay);
+    propagate_delay();
+}
+
+void DpinNode::init(double delay){    
+    set_init_delay(delay);
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    const circuit::Pin &d_pin = netlist.get_pin(id);
+    Timer &timer = Timer::get_instance();
+    double displacement_delay = timer.get_displacement_delay_factor();
+    double propagation_delay = 0.0;
+    if(get_is_from_pin_q_pin()){                                
+        const circuit::Pin &q_pin = netlist.get_pin(from_pin_id);            
+        propagation_delay = displacement_delay * (abs(q_pin.get_x() - d_pin.get_x()) + abs(q_pin.get_y() - d_pin.get_y()));                
+    }else{                    
+        const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
+        const circuit::Pin &output_pin = original_netlist.get_pin(from_pin_id);
+        propagation_delay = displacement_delay * (abs(output_pin.get_x() - d_pin.get_x()) + abs(output_pin.get_y() - d_pin.get_y()));        
+    }
+    set_propagation_delay(propagation_delay);
+}
+
+void DpinNode::update(double delay){    
+    update_init_delay(delay);    
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    const circuit::Pin &d_pin = netlist.get_pin(id);
+    Timer &timer = Timer::get_instance();
+    double displacement_delay = timer.get_displacement_delay_factor();    
+    if(get_is_from_pin_q_pin()){                                
+        const circuit::Pin &q_pin = netlist.get_pin(from_pin_id);            
+        double new_propagation_delay = displacement_delay * (abs(q_pin.get_x() - d_pin.get_x()) + abs(q_pin.get_y() - d_pin.get_y()));              
+        update_propagation_delay(new_propagation_delay);
+    }
+
+    timer.add_affected_d_pin_id(id);
+}
+
+void DpinNode::update_location(){    
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    const circuit::Pin &d_pin = netlist.get_pin(id);
+    Timer &timer = Timer::get_instance();
+    double displacement_delay = timer.get_displacement_delay_factor();
+    double new_propagation_delay = 0.0;
+    if(get_is_from_pin_q_pin()){                                
+        const circuit::Pin &q_pin = netlist.get_pin(from_pin_id);            
+        new_propagation_delay = displacement_delay * (abs(q_pin.get_x() - d_pin.get_x()) + abs(q_pin.get_y() - d_pin.get_y()));                
+    }else{                    
+        const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
+        const circuit::Pin &output_pin = original_netlist.get_pin(from_pin_id);
+        new_propagation_delay = displacement_delay * (abs(output_pin.get_x() - d_pin.get_x()) + abs(output_pin.get_y() - d_pin.get_y()));        
+    }
+    update_propagation_delay(new_propagation_delay);
+
+    timer.add_affected_d_pin_id(id);
+}
+
+
 void Timer::write_init_timing_data(){
     const config::ConfigManager &config_manager = config::ConfigManager::get_instance();
     int write_case = std::get<int>(config_manager.get_config_value("timer_case"));
@@ -31,68 +160,10 @@ void Timer::write_init_timing_data(){
         write_case_str = "timer_testcase3.txt";
     }
     const std::string &path = pre_fix + write_case_str;
+    /*
     std::ofstream file(path);
-    for(auto& [id,timing_node] : timing_nodes){
-        double q_pin_delay = timing_node.get_q_pin_delay();
-        double q_pin_output_pin_placement_delay = timing_node.get_q_pin_output_pin_placement_delay();
-        double input_pin_d_pin_placement_delay = timing_node.get_input_pin_d_pin_placement_delay();
-        std::unordered_set<int> affected_d_pins = timing_node.get_affected_d_pins();
-        std::pair<int,int> q_pin_output_pin_location = timing_node.get_q_pin_output_pin_location();
-        std::pair<int,int> d_pin_input_pin_location = timing_node.get_d_pin_input_pin_location();
-        double slack = timing_node.get_slack();
-        file << id << " " << q_pin_delay << " " << q_pin_output_pin_placement_delay << " " << input_pin_d_pin_placement_delay << " " << slack << " " << q_pin_output_pin_location.first << " " << q_pin_output_pin_location.second << " " << d_pin_input_pin_location.first << " " << d_pin_input_pin_location.second << " ";
-        int size = affected_d_pins.size();
-        file << size << " ";        
-        for(int affected_d_pin : affected_d_pins){
-            file << affected_d_pin << " ";
-        }
-        file << std::endl;
-    }
-}
-
-void TimingNode::update_slack_since_cell_move(){
-    // if cell movable
-        
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    const circuit::Pin &pin = netlist.get_pin(get_pin_id());
-    const timer::Timer &timer = timer::Timer::get_instance();     
-    // Step1. update itself
-    double new_placement_delay = 0.0;
-    new_placement_delay = timer.get_displacement_delay_factor() * (abs(pin.get_x() - d_pin_input_pin_location.first) + abs(pin.get_y() - d_pin_input_pin_location.second));
-    
-    add_slack( get_input_pin_d_pin_placement_delay() - new_placement_delay);
-    set_input_pin_d_pin_placement_delay(new_placement_delay);
-
-}
-
-void TimingNode::cell_move_update_affected_d_pin_slack(){
-    ////std::cout<<"DEBUG cell: "<<get_pin_id()<<" cell_move_update_affected_d_pin_slack"<<std::endl;
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
-    timer::Timer &timer = timer::Timer::get_instance();      
-    const circuit::Pin &pin = netlist.get_pin(get_pin_id());
-    int x = pin.get_x();
-    int y = pin.get_y();
-
-    for(int affected_d_pin : affected_d_pins){        
-        TimingNode &node = timer.get_mutable_timing_node(affected_d_pin);        
-
-        double new_q_pin_output_pin_placement_delay;
-        new_q_pin_output_pin_placement_delay = timer.get_displacement_delay_factor() * (abs(x- node.q_pin_output_pin_location.first) 
-        + abs(y - node.q_pin_output_pin_location.second));
-
-        node.add_slack(node.get_q_pin_output_pin_placement_delay() - new_q_pin_output_pin_placement_delay);
-        node.set_q_pin_output_pin_placement_delay(new_q_pin_output_pin_placement_delay);
-    }
-}
-
-
-void TimingNode::libcell_change_update_affected_d_pin_slack(double q_pin_delay){ 
-    timer::Timer &timer = timer::Timer::get_instance();
-    for(int affected_d_pin : affected_d_pins){
-        TimingNode &node = timer.get_mutable_timing_node(affected_d_pin);
-        node.add_slack(node.get_q_pin_delay() - q_pin_delay);
-        node.set_q_pin_delay(q_pin_delay);        
-    }
+    for(auto& [id,timing_node] : dpin_nodes){
+    }*/
 }
 
 
@@ -106,101 +177,6 @@ void Timer::init_timing(const std::unordered_map<int,double> &init_pin_slack_map
     }
 }
 
-//INIT Use ORIGINAL NETLIST
-void Timer:: dfs_from_q_pin_to_each_d_pin(int q_pin_id){    
-    const circuit::OriginalNetlist &netlist = circuit::OriginalNetlist::get_instance();
-    const design::Design &design = design::Design::get_instance();
-
-    // q_pin and q_pin delay
-    const circuit::Pin &q_pin = netlist.get_pin(q_pin_id);
-    if(q_pin.no_connection()){
-        return;
-    }
-    int cell_id = q_pin.get_cell_id();    
-    const circuit::Cell &cell = netlist.get_cell(cell_id);
-    int libcell_id = cell.get_lib_cell_id();
-    const design::LibCell &libcell = design.get_lib_cell(libcell_id);
-    double q_pin_delay = libcell.get_delay();
-
-    int net_id = q_pin.get_net_id();
-    const circuit::Net &net = netlist.get_net(net_id);
-    
-    // q_pin slack does not matter 0.0
-    // MAPPING
-    int mapping_q_pin_id = netlist.get_ff_pin_id(q_pin_id);
-    timing_nodes.insert(std::make_pair(mapping_q_pin_id, TimingNode(mapping_q_pin_id,0.0)));
-
-    for(int pin_id : net.get_pins_id()){
-        // skip q_pin
-        if(pin_id == q_pin_id){
-            continue;
-        }
-        // q_pin_output_pin
-        const circuit::Pin &pin = netlist.get_pin(pin_id);
-        if(pin.is_port()){           
-            continue;
-        }
-
-        std::pair<int,int> q_pin_output_pin_location = std::make_pair(pin.get_x(),pin.get_y());
-        double q_pin_output_pin_placement_delay = get_displacement_delay_factor() * (abs(q_pin.get_x() - pin.get_x()) + abs(q_pin.get_y() - pin.get_y()));                
-        const std::vector<int> &affected_d_pins = dfs_until_d_pin_using_stack(q_pin_id,pin.get_id(),q_pin_output_pin_location,q_pin_output_pin_placement_delay,q_pin_delay);
-        for(int d_pin_id : affected_d_pins){
-            // MAPPING
-            timing_nodes[mapping_q_pin_id].add_affected_d_pin(d_pin_id);
-        }
-    }
-    
-}
-
-std::vector<int> Timer::dfs_until_d_pin_using_stack(int start_q_pin_id,int q_pin_output_pin_id,const std::pair<int,int> &q_pin_output_pin_location, const double q_pin_output_pin_placement_delay, const double q_pin_delay){
-    const circuit::OriginalNetlist &netlist = circuit::OriginalNetlist::get_instance();        
-    std::vector<int> affected_d_pins;
-
-    std::stack<std::pair<int,int>> sink_pins_stack;
-    sink_pins_stack.push(std::make_pair(start_q_pin_id,q_pin_output_pin_id));
-
-    while(!sink_pins_stack.empty()){
-        int fanin_pid = sink_pins_stack.top().first;
-        int sink_pin_id = sink_pins_stack.top().second;        
-        sink_pins_stack.pop();
-        const circuit::Pin &pin = netlist.get_pin(sink_pin_id);
-        if(pin.is_port()){            
-            continue;
-        }
-        else if(pin.is_d_pin()){
-            // MAPPING
-            int mapping_sink_pin_id = netlist.get_ff_pin_id(sink_pin_id);
-            timing_nodes[mapping_sink_pin_id].set_q_pin_output_pin_location(q_pin_output_pin_location);
-            timing_nodes[mapping_sink_pin_id].set_q_pin_output_pin_placement_delay(q_pin_output_pin_placement_delay);
-            const circuit::Pin &d_pin_input_pin = netlist.get_pin(fanin_pid);            
-            double input_pin_d_pin_placement_delay = get_displacement_delay_factor() * (abs(d_pin_input_pin.get_x() - pin.get_x()) + abs(d_pin_input_pin.get_y() - pin.get_y()));
-            timing_nodes[mapping_sink_pin_id].set_input_pin_d_pin_placement_delay(input_pin_d_pin_placement_delay);        
-            timing_nodes[mapping_sink_pin_id].set_d_pin_input_pin_location(std::make_pair(d_pin_input_pin.get_x(),d_pin_input_pin.get_y()));
-            timing_nodes[mapping_sink_pin_id].set_q_pin_delay(q_pin_delay);
-            // MAPPING            
-            affected_d_pins.push_back(mapping_sink_pin_id);            
-        }else{
-            // get outputs pin from input pin
-            int cell_id = pin.get_cell_id();
-            const circuit::Cell &cell = netlist.get_cell(cell_id);
-            for(int output_pin_id : cell.get_output_pins_id()){
-                const circuit::Pin &output_pin = netlist.get_pin(output_pin_id);
-                if(output_pin.no_connection()){
-                    continue;
-                }
-                int output_net_id = output_pin.get_net_id();
-                const circuit::Net &output_net = netlist.get_net(output_net_id);                                
-                for(int next_input_pin_id : output_net.get_pins_id()){
-                    if(next_input_pin_id == output_pin_id){
-                        continue;
-                    }
-                    sink_pins_stack.push(std::make_pair(output_pin_id,next_input_pin_id));
-                }
-            }
-        }        
-    }
-    return affected_d_pins;
-}
 
 void Timer::create_timing_graph_by_read_data(){    
     config::ConfigManager &config_manager = config::ConfigManager::get_instance();
@@ -222,32 +198,7 @@ void Timer::create_timing_graph_by_read_data(){
     std::ifstream file(path);
     std::string line;
     while(std::getline(file,line)){
-        std::istringstream iss(line);
-        int id;
-        double q_pin_delay;
-        double q_pin_output_pin_placement_delay;
-        double input_pin_d_pin_placement_delay;
-        double slack;
-        int q_pin_output_pin_x;
-        int q_pin_output_pin_y;
-        int d_pin_input_pin_x;
-        int d_pin_input_pin_y;
-        int size;
-        iss >> id >> q_pin_delay >> q_pin_output_pin_placement_delay >> input_pin_d_pin_placement_delay >> slack >> q_pin_output_pin_x >> q_pin_output_pin_y >> d_pin_input_pin_x >> d_pin_input_pin_y >> size;
-        std::pair<int,int> q_pin_output_pin_location = std::make_pair(q_pin_output_pin_x,q_pin_output_pin_y);
-        std::pair<int,int> d_pin_input_pin_location = std::make_pair(d_pin_input_pin_x,d_pin_input_pin_y);
-        TimingNode node(id,slack);
-        node.set_q_pin_delay(q_pin_delay);
-        node.set_q_pin_output_pin_placement_delay(q_pin_output_pin_placement_delay);
-        node.set_input_pin_d_pin_placement_delay(input_pin_d_pin_placement_delay);
-        node.set_q_pin_output_pin_location(q_pin_output_pin_location);
-        node.set_d_pin_input_pin_location(d_pin_input_pin_location);        
-        for(int i=0;i<size;i++){
-            int affected_d_pin;
-            iss >> affected_d_pin;
-            node.add_affected_d_pin(affected_d_pin);
-        }
-        timing_nodes.insert(std::make_pair(id,node));
+        
     }
 }
 
@@ -259,90 +210,163 @@ void Timer::create_timing_graph(){
         return;
     }
     const circuit::OriginalNetlist &netlist = circuit::OriginalNetlist::get_instance();
-    const std::vector<circuit::Cell> &cells = netlist.get_cells();
-    for(const auto &cell : cells){
-        if(!cell.is_sequential()){
-            continue;
-        }       
-        for(int q_pin_id : cell.get_output_pins_id()){     
-            dfs_from_q_pin_to_each_d_pin(q_pin_id);
-        }
-    }
-    write_init_timing_data();
+    const std::vector<circuit::Net> &nets = netlist.get_nets();
+    // add d_pins, q_pins, input_delay_nodes, and output_delay_nodes
+    for(const auto &net : nets){
+        for(int pin_id : net.get_pins_id()){
+            const circuit::Pin &pin = netlist.get_pin(pin_id);        
+            if(pin.get_is_port() || pin.get_is_clk()){
+                continue;
+            }
+            if(pin.is_ff_pin()){
+                int mapping_pin_id = netlist.get_ff_pin_id(pin_id);
+                if(pin.get_is_input()){                               
+                    dpin_nodes.insert(std::make_pair(mapping_pin_id,DpinNode(mapping_pin_id)));
+                }else{
+                    qpin_nodes.insert(std::make_pair(mapping_pin_id,QpinNode(mapping_pin_id)));
+                }
+            }
+            else{
+                if(pin.get_is_input()){
+                    input_delay_nodes.insert(std::make_pair(pin_id,InputDelayNode(pin_id)));                    
+                }else{
+                    output_delay_nodes.insert(std::make_pair(pin_id,OutputDelayNode(pin_id)));
+                }
+            }
+        }    
+    }    
+    add_intput_delay_node_to_pins_id();    
+    traverse_each_net_to_add_connection();
+    init_propagate();
     //std::cout<<"DEBUG create_timing_graph Finish "<<std::endl;
 }
 
-void Timer::update_slack_since_cell_move(int cell_id){
-
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    const circuit::Cell &cell = netlist.get_cell(cell_id);    
-    for(int d_pin_id : cell.get_input_pins_id()){        
-        if(timing_nodes.find(d_pin_id) == timing_nodes.end()){
+void Timer::add_intput_delay_node_to_pins_id(){
+    const circuit::OriginalNetlist &netlist = circuit::OriginalNetlist::get_instance();
+    const std::vector<circuit::Cell> &cells = netlist.get_cells();
+    for(const auto &cell : cells){
+        if(cell.is_sequential()){
             continue;
+        }                
+        const std::vector<int> &input_pins_id = cell.get_input_pins_id();
+        const std::vector<int> &output_pins_id = cell.get_output_pins_id();
+        for(int input_pin_id : input_pins_id){
+            for(int output_pin_id : output_pins_id){
+                input_delay_nodes[input_pin_id].add_to_pins_id(output_pin_id);
+            }
         }
-        timing_nodes.at(d_pin_id).update_slack_since_cell_move();
-    }
-
-    for(int q_pin_id : cell.get_output_pins_id()){        
-        if(timing_nodes.find(q_pin_id) == timing_nodes.end()){
-            continue;
-        }
-        timing_nodes.at(q_pin_id).cell_move_update_affected_d_pin_slack();        
     }
 }
 
-void Timer::update_slack_since_libcell_change(int cell_id){
-    //std::cout<<"DEBUG cell: "<<cell_id<<" update_slack_since_libcell_change"<<std::endl;    
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
-    const circuit::Cell &cell = netlist.get_cell(cell_id);    
-    const design::Design &design = design::Design::get_instance();
-    int libcell_id = cell.get_lib_cell_id();
-    const design::LibCell &libcell = design.get_lib_cell(libcell_id);
-    double q_pin_delay = libcell.get_delay();    
-    for(int q_pin_id : cell.get_output_pins_id()){
-        timing_nodes[q_pin_id].libcell_change_update_affected_d_pin_slack(q_pin_delay);
+void Timer::traverse_each_net_to_add_connection(){
+    const circuit::OriginalNetlist &netlist = circuit::OriginalNetlist::get_instance();
+    const std::vector<circuit::Net> &nets = netlist.get_nets();
+    for(const auto &net : nets){
+        if(net.get_is_clock_net()){
+            continue;
+        }
+        int driver_pin_id = net.get_driver_pin_id();
+        const circuit::Pin &driver_pin = netlist.get_pin(driver_pin_id);
+        bool is_q_pin = driver_pin.is_ff_pin();
+        if(is_q_pin){
+            int mapping_q_pin_id = netlist.get_ff_pin_id(driver_pin_id);
+            for(int sink_pin_id : net.get_pins_id()){
+                if(sink_pin_id == driver_pin_id){
+                    continue;
+                }
+                const circuit::Pin &sink_pin = netlist.get_pin(sink_pin_id);
+                if(sink_pin.get_is_port() || sink_pin.get_is_clk()){
+                    continue;
+                }
+                if(sink_pin.is_d_pin()){
+                    // MAPPING
+                    int mapping_d_pin_id = netlist.get_ff_pin_id(sink_pin_id);
+                    qpin_nodes[mapping_q_pin_id].add_d_pin_node(mapping_d_pin_id);
+                    dpin_nodes[mapping_d_pin_id].set_from_pin_id(mapping_q_pin_id);
+                    dpin_nodes[mapping_d_pin_id].set_is_from_pin_q_pin(true);
+                }else{
+                    qpin_nodes[mapping_q_pin_id].add_input_delay_node(sink_pin_id);
+                    input_delay_nodes[sink_pin_id].set_is_from_pin_q_pin(true);
+                    input_delay_nodes[sink_pin_id].set_from_pin_id(mapping_q_pin_id);
+                }
+            }
+        }else{            
+            for(int sink_pin_id : net.get_pins_id()){
+                if(sink_pin_id == driver_pin_id){
+                    continue;
+                }
+                const circuit::Pin &sink_pin = netlist.get_pin(sink_pin_id);
+                if(sink_pin.get_is_port() || sink_pin.get_is_clk()){
+                    continue;
+                }
+                if(sink_pin.is_d_pin()){
+                    // MAPPING
+                    int mapping_d_pin_id = netlist.get_ff_pin_id(sink_pin_id);
+                    output_delay_nodes[driver_pin_id].add_d_pin_node(mapping_d_pin_id);
+                    dpin_nodes[mapping_d_pin_id].set_from_pin_id(driver_pin_id);
+                    dpin_nodes[mapping_d_pin_id].set_is_from_pin_q_pin(false);
+                }else{
+                    output_delay_nodes[driver_pin_id].add_input_delay_node(sink_pin_id);
+                    input_delay_nodes[sink_pin_id].set_is_from_pin_q_pin(false);
+                    input_delay_nodes[sink_pin_id].set_from_pin_id(driver_pin_id);
+                }
+            }
+        }                
     }
 }
 
-void Timer::update_timing(int cell_id){
+const std::unordered_set<int> & Timer::get_affected_cells_id_by_affected_d_pins_id(){
+    std::unordered_set<int> affected_cells_id_set;    
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
-    update_slack_since_cell_move(cell_id);
-    update_slack_since_libcell_change(cell_id);
-    cell.calculate_slack();
-    
-    // update affected d_pins cell
-    std::unordered_set<int> affected_cells_id_set;
-    for(int q_pin_id : cell.get_output_pins_id()){
-        const TimingNode &node = timing_nodes.at(q_pin_id);
-        for(int d_pin_id : node.get_affected_d_pins()){
-            const circuit::Pin &pin = netlist.get_pin(d_pin_id);
-            int cell_id = pin.get_cell_id();
-            affected_cells_id_set.insert(cell_id);
-        }
+    for(int d_pin_id : affected_d_pins_id_set){
+        const circuit::Pin &d_pin = netlist.get_pin(d_pin_id);
+        int cell_id = d_pin.get_cell_id();
+        affected_cells_id_set.insert(cell_id);
     }
 
-    for(int affected_cell_id : affected_cells_id_set){
-        circuit::Cell &affected_cell = netlist.get_mutable_cell(affected_cell_id);
-        affected_cell.calculate_slack();
+    for(int cell_id : affected_cells_id_set){
+        circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
+        cell.calculate_slack();
     }
+    reset_affetced_d_pins_id_set();
+    return affected_cells_id_set;        
 }
 
-void Timer::update_timing(){
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    const std::unordered_set<int> &sequential_cells_id = netlist.get_sequential_cells_id();
-    for(int cell_id : sequential_cells_id){
-        update_timing(cell_id);
+void Timer::update_timing(int cell_id){    
+    reset_affetced_d_pins_id_set();
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();    
+    const circuit::Cell &cell = netlist.get_cell(cell_id);
+    // location update
+    for(int d_pin_id : cell.get_input_pins_id()){
+        dpin_nodes[d_pin_id].update_location();        
+    }    
+
+    // propagate delay
+    for(int q_pin_id : cell.get_output_pins_id()){
+        qpin_nodes[q_pin_id].update();
     }    
 }
 
-void Timer::switch_to_other_solution(const std::unordered_map<int,TimingNode> &timing_nodes){
-    this->timing_nodes = timing_nodes;
-    // update cells slack
-    circuit::Netlist &netlist = circuit::Netlist::get_instance();    
-    const std::unordered_set<int> &sequential_cells_id = netlist.get_sequential_cells_id();
-    for(int cell_id : sequential_cells_id){
-        circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
+void Timer::update_timing(){    
+    for(auto &it : qpin_nodes){
+        it.second.update();
+    }
+}
+
+void Timer::init_propagate(){
+    for(auto &it : qpin_nodes){
+        it.second.init_propagate_delay();
+    }
+}
+
+
+void Timer::switch_to_other_solution(const std::unordered_map<int,DpinNode> &dpin_nodes,const std::unordered_map<int,QpinNode> &qpin_nodes,const std::unordered_map<int,InputDelayNode> &input_delay_nodes,const std::unordered_map<int,OutputDelayNode> &output_delay_nodes){
+    this -> dpin_nodes = dpin_nodes;
+    this -> qpin_nodes = qpin_nodes;
+    this -> input_delay_nodes = input_delay_nodes;
+    this -> output_delay_nodes = output_delay_nodes;
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    for(auto &cell : netlist.get_mutable_cells()){
         cell.calculate_slack();
     }
 }
@@ -353,40 +377,41 @@ void Timer::update_timing_by_cells_id(const std::vector<int> &cells_id){
     }
 }
 
-double Timer::calculate_timing_cost_after_cluster(int cell_id, std::unordered_set<int> &affected_cells_id_set){
+double Timer::calculate_timing_cost_after_cluster(const std::vector<int> &cells_id, std::vector<int> &affected_cells_id){    
     double cost_change = 0.0;
-    circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
     const design::Design &design = design::Design::get_instance();
     double timing_factor = design.get_timing_factor();
-    update_slack_since_cell_move(cell_id);
-    update_slack_since_libcell_change(cell_id);
-    affected_cells_id_set.insert(cell_id);
+    update_timing_by_cells_id(cells_id);
+    const std::unordered_set<int> &affected_cells_id_set = get_affected_cells_id_by_affected_d_pins_id();
+    double original_slack_cost = 0.0;
+    for(int cell_id : affected_cells_id_set){
+        const circuit::Cell &cell = circuit::Netlist::get_instance().get_cell(cell_id);
+        if(cell.get_slack() < 0){
+            original_slack_cost += cell.get_slack() * timing_factor;
+        }
 
-    // update affected d_pins cell    
-    for(int q_pin_id : cell.get_output_pins_id()){
-        const TimingNode &node = timing_nodes.at(q_pin_id);
-        for(int d_pin_id : node.get_affected_d_pins()){
-            const circuit::Pin &pin = netlist.get_pin(d_pin_id);
-            int cell_id = pin.get_cell_id();
-            affected_cells_id_set.insert(cell_id);
+    }
+
+    double new_slack_cost = 0.0;
+    update_cells_slack(affected_cells_id_set);
+    for(int cell_id : affected_cells_id_set){
+        const circuit::Cell &cell = circuit::Netlist::get_instance().get_cell(cell_id);
+        if(cell.get_slack() < 0){
+            new_slack_cost += cell.get_slack() * timing_factor;
         }
     }
 
-    for(int affected_cell_id : affected_cells_id_set){
-        circuit::Cell &affected_cell = netlist.get_mutable_cell(affected_cell_id);
-        double original_slack = affected_cell.get_slack();
-        affected_cell.calculate_slack();
-        double new_slack = affected_cell.get_slack();
-        if(new_slack >= 0 && original_slack < 0){
-            cost_change += original_slack * timing_factor;
-        }
-        if(new_slack < 0){
-            double slack = std::min(0.0,original_slack);
-            cost_change += -(new_slack-slack) * timing_factor;
-        }
-    }
+    cost_change = new_slack_cost - original_slack_cost;    
+    affected_cells_id.insert(affected_cells_id.end(),affected_cells_id_set.begin(),affected_cells_id_set.end());
     return cost_change;
+}
+
+void Timer::update_cells_slack(const std::unordered_set<int> &affected_cells_id){
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    for(int cell_id : affected_cells_id){
+        circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
+        cell.calculate_slack();
+    }
 }
 
 } // namespace timer

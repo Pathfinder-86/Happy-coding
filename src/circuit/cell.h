@@ -75,8 +75,7 @@ public:
         y = 0;
         w = 0;
         h = 0;
-        lib_cell_id = -1;   
-        slack = 0.0;                
+        lib_cell_id = -1;        
     }
     // overlap 
     bool overlap(const Cell& cell) const;

@@ -29,7 +29,7 @@ int main(int argc,char *argv[]) {
         //command_manager.test_cluster_ff();
         //command_manager.test_decluster_ff();
         //command_manager.SA();
-        command_manager.kmeans_cluster();
+        //command_manager.kmeans_cluster();
         //command_manager.swap_ff();
         //command_manager.write_output_data(output_file);
         if(std::get<bool>(config_manager.get_config_value("run_tiny"))) {

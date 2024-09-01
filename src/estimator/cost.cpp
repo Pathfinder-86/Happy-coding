@@ -24,8 +24,10 @@ void CostCalculator::calculate_cost(){
         const circuit::Cell& cell = cells.at(cell_id);     
         double cell_timing_cost = 0.0;
         double slack = cell.get_slack();
+        std::cout<<"COSTCAL:: CELL ID: "<<cell_id<<" SLACK: "<<slack<<std::endl;
         if(slack < 0){
             cell_timing_cost = -slack * timing_factor;
+            std::cout<<"timing factor: "<<timing_factor<<" cell_timing_cost: "<<cell_timing_cost<<std::endl;
         }
         int lib_cell_id = cell.get_lib_cell_id();
         const FFLibCellCost& lib_cell_cost = ff_libcell_cost_manager.get_ff_libcell_cost(lib_cell_id);
@@ -115,11 +117,11 @@ void CostCalculator::update_cell_cost_by_libcell_id(int cell_id,int lib_cell_id)
     sequential_cells_cost[cell_id].set_power_cost(new_cell_power_cost);
 }
 
-double CostCalculator::get_utilization_cost(){
+double CostCalculator::get_utilization_cost() const{
     const design::Design& design = design::Design::get_instance();
     double utilization_factor = design.get_utilization_factor();
-    const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();
-    this->utilization_cost = utilization.get_overflow_bins_num() * utilization_factor;
+    const legalizer::UtilizationCalculator& utilization = legalizer::UtilizationCalculator::get_instance();    
+    return utilization.get_overflow_bins_num() * utilization_factor;
 }
 
 void CostCalculator::rollack_timer_res(const std::vector<int> &cells_id){      

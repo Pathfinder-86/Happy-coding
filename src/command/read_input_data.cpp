@@ -74,7 +74,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             //std::cout<<"set die boundary finish"<<std::endl;
         }else if(token == "NumInput" || token == "NumOutput"){
             int port_num = 0;
-            int pin_connection_type = (token == "NumInput")? 1 : 0;
+            bool is_output = (token == "NumInput")? true : false;
             // NOTE!  input port is driver pin of a net, output port is sink pin of a net
             // so in connection type, input port is "output", output port is "input"
             ss >> port_num;
@@ -84,10 +84,14 @@ void CommandManager::read_input_data(const std::string &filename) {
                 double y = 0.0;
                 ss >> token >> name >> x >> y;
                 circuit::Pin pin;
+                pin.set_is_port(true);
+                if(is_output == true){
+                    pin.set_is_output(true);
+                }else{
+                    pin.set_is_input(true);
+                }
                 pin.set_x(x);
                 pin.set_y(y);
-                // 0: input, 1: output, 2: clk,other                
-                pin.set_pin_connection_type(pin_connection_type);
                 original_netlist.add_pin(pin,name);
             }
         }else if(token == "FlipFlop"){
@@ -169,31 +173,29 @@ void CommandManager::read_input_data(const std::string &filename) {
                     // 0: input, 1: output, 2: clk,other
                     if(lib_cell.is_sequential() == true){                                         
                         if(pins_name.at(j).at(0) == 'D'){                    
-                            pin.set_pin_connection_type(0);
+                            pin.set_is_input(true);
                             pin.set_ff_pin(true);               
                         }else if(pins_name.at(j).at(0) == 'Q'){
-                            pin.set_pin_connection_type(1);
+                            pin.set_is_output(true);
                             pin.set_ff_pin(true);                            
                         }else{
-                            pin.set_pin_connection_type(2);                            
+                            pin.set_is_clk(true);
                             pin.set_ff_pin(false);
                         }
                     }else{
                         pin.set_ff_pin(false);
                         if(pins_name.at(j).at(0) == 'I'){ // IN              
-                            pin.set_pin_connection_type(0);
+                            pin.set_is_input(true);
                         }else if(pins_name.at(j).at(0) == 'O'){ // OUT
-                            pin.set_pin_connection_type(1);
-                        }else{
-                            pin.set_pin_connection_type(2);
+                            pin.set_is_output(true);
                         }
                     }
                     original_netlist.add_pin(pin,name + "/" + pins_name.at(j));
                     int pid = pin.get_id();
                     // set pin_id on cell
-                    if(pin.is_input() == true){
+                    if(pin.get_is_input() == true){
                         cell.add_input_pin_id(pid);
-                    }else if(pin.is_output() == true){
+                    }else if(pin.get_is_output() == true){
                         cell.add_output_pin_id(pid);
                     }else{
                         cell.set_other_pin_id(pid);
@@ -266,12 +268,19 @@ void CommandManager::read_input_data(const std::string &filename) {
                 int pin_num = 0;
                 ss >> token >> name >> pin_num;
                 circuit::Net net;                
-                // add pins to net
+                // add pins to net                
                 for(int j = 0; j < pin_num; j++){                    
                     std::string pin_name;
                     ss >> token >> pin_name;                    
                     int pin_id = original_netlist.get_pin_id(pin_name);
                     net.add_pin_id(pin_id);                    
+                    const circuit::Pin &pin = original_netlist.get_pin(pin_id);
+                    if(pin.get_is_clk() == true){
+                        net.set_is_clock_net(true);
+                    }
+                    if(pin.get_is_port() == true){
+                        net.set_is_port_net(true);
+                    }
                 }
 
                 // add net to original_netlist                
@@ -282,22 +291,8 @@ void CommandManager::read_input_data(const std::string &filename) {
                     pin.set_net_id(net_id);
                 }
 
-                const std::vector<int> &pins_id = net.get_pins_id();
-                if(pins_id.size() < 2){
-                    continue;
-                }
-                // CLK NET
-                bool is_clk_net = false;
-                for(int i=1;i<pin_num;i++){
-                    int pin_id = net.get_pins_id().at(i);
-                    const std::string &pin_name = original_netlist.get_pin_name(pins_id.at(1));
-                    if(pin_name.find("CLK") != std::string::npos){
-                        is_clk_net = true;
-                        break;
-                    }    
-                }
-                
-                if(is_clk_net == true){
+                const std::vector<int> &pins_id = net.get_pins_id();                
+                if(net.get_is_clock_net() == true){
                     // MAPPING
                     std::unordered_set<int> clk_group;
                     for(int i=1;i<pin_num;i++){
@@ -323,7 +318,7 @@ void CommandManager::read_input_data(const std::string &filename) {
             design.set_bin_size(x,y);
             double bin_max_utilization = 0.0;
             ss >> token >> bin_max_utilization;
-            design.set_bin_max_utilization(bin_max_utilization / 100. - 0.01 );
+            design.set_bin_max_utilization(bin_max_utilization / 100. );
         }else if(token == "PlacementRows"){
             double x,y,site_width,site_height;
             int site_num;
@@ -372,7 +367,7 @@ void CommandManager::read_input_data(const std::string &filename) {
         cell.calculate_slack();
     }
     // create timing nodes and connection    
-    timer.create_timing_graph();
+    //timer.create_timing_graph();
     std::cout<<"TIMER:: FINISH"<<std::endl;
     runtime_manager.get_runtime();
 
@@ -393,7 +388,7 @@ void CommandManager::read_input_data(const std::string &filename) {
 
     // calculate init 
     estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();
-    cost_calculator.calculate_cost();    
+    cost_calculator.init();
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
     solution_manager.keep_init_solution();
 
