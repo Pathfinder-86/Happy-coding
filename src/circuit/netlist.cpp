@@ -79,8 +79,7 @@ void Netlist::cluster_cells(const std::vector<int> &cells_id){
     const Cell &parent_cell = get_cell(cells_id.at(0));
     if(parent_cell.get_lib_cell_id() == best_lib_cell_id){        
         return ;
-    } 
-    std::cout<<"modify_circuit_since_merge_cell"<<std::endl;
+    }     
     modify_circuit_since_merge_cell(cells_id, best_lib_cell_id);
 }
 
@@ -204,7 +203,9 @@ int Netlist::cluster_clk_group(const std::vector<std::vector<int>> &clustering_r
 // without legalizer check
 void Netlist::modify_circuit_since_merge_cell(const std::vector<int> &cells_id, const int new_lib_cell_id){
     // parent
-    std::cout<<"cells_id size: "<<cells_id.size()<<" new_lib_cell_id: "<<new_lib_cell_id<<std::endl;
+    if(cells_id.empty()){
+        return ;
+    }
     int parent_id = cells_id.at(0);
     Cell& cell1 = get_mutable_cell(parent_id);
 
@@ -235,7 +236,6 @@ void Netlist::modify_circuit_since_merge_cell(const std::vector<int> &cells_id, 
     cell1.set_h(new_lib_cell.get_height());
     
     // handle pins mapping    
-    std::cout<<"handle pins mapping"<<std::endl;
     std::vector<int> new_cell_input_pins_id;
     std::vector<int> new_cell_output_pins_id;
 
@@ -271,7 +271,7 @@ void Netlist::modify_circuit_since_merge_cell(const std::vector<int> &cells_id, 
         output_pin.set_y(new_cell_y + new_lib_cell_output_pins_position.at(i).second);
         output_pin.set_cell_id(parent_id);
     }        
-    std::cout<<"clear cells"<<std::endl;
+
     for(int i = 1; i < static_cast<int>(cells_id.size()); i++){
         int cell_id = cells_id.at(i);
         Cell &cell = get_mutable_cell(cell_id);
@@ -280,7 +280,6 @@ void Netlist::modify_circuit_since_merge_cell(const std::vector<int> &cells_id, 
         remove_sequential_cell(cell_id);
         remove_cell_from_clk_group(cell_id);        
     }
-    std::cout<<"clear cells end"<<std::endl;
 }
 
 std::pair<int,int> Netlist::find_best_cell_new_location_according_to_timer(const std::vector<int> &cells_id){

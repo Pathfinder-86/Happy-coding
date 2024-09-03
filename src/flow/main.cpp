@@ -30,9 +30,12 @@ int main(int argc,char *argv[]) {
         //command_manager.kmeans_cluster();
         //command_manager.faster_clustering();
 
-        command_manager.extremely_fast_clustering_limit_high_bits();
-        //command_manager.swap_ff();  
-        //command_manager.extremely_fast_clustering();
+        //command_manager.extremely_fast_clustering_limit_high_bits();    
+
+        if(!command_manager.extremely_fast_clustering()){
+            // timing cost dominated case
+            command_manager.swap_ff();
+        }
 
         //command_manager.swap_ff();
         //command_manager.write_output_data(output_file);

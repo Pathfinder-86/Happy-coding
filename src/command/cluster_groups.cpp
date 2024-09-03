@@ -596,7 +596,7 @@ void CommandManager::faster_clustering(){
 
 
 
-void CommandManager::extremely_fast_clustering(){
+bool CommandManager::extremely_fast_clustering(){
     std::cout << "INIT extremely_fast_clustering" << std::endl;
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
     const estimator::FFLibcellCostManager &ff_libcells_cost_manager = estimator::FFLibcellCostManager::get_instance();
@@ -685,7 +685,7 @@ void CommandManager::extremely_fast_clustering(){
         // rollback
         std::cout<<"Legal fail"<<std::endl;
         solution_manager.switch_to_best_solution();
-        return;
+        return false;
     }
 
     // skip timer?
@@ -710,15 +710,17 @@ void CommandManager::extremely_fast_clustering(){
         std::cout<<"Keep best solution"<<std::endl;
         std::cout<<"COST/RUNTIME "<<current_cost<<" "<<runtime.get_runtime_seconds()<<std::endl;
         solution_manager.keep_best_solution();
+        return true;
     }else{
         std::cout<<"rollback to best solution"<<std::endl;
         solution_manager.switch_to_best_solution();
+        return false;
     }
 
 }
 
 
-void CommandManager::extremely_fast_clustering_limit_high_bits(){
+bool CommandManager::extremely_fast_clustering_limit_high_bits(){
     std::cout << "INIT extremely_fast_clustering" << std::endl;
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();
     const estimator::FFLibcellCostManager &ff_libcells_cost_manager = estimator::FFLibcellCostManager::get_instance();
@@ -760,10 +762,22 @@ void CommandManager::extremely_fast_clustering_limit_high_bits(){
 
     for(const auto &it : clk_group_id_to_ff_cell_ids){        
         std::cout<<"Clustering"<<std::endl;
-        const std::unordered_set<int> &ff_cell_ids = it.second;
+        std::vector<std::vector<int>> clustering_res; 
+
+        const std::unordered_set<int> &ff_cell_ids = it.second;        
+        std::unordered_set<int> ff_cell_ids_limit_high;
+        for(int cell_id : ff_cell_ids){
+            const circuit::Cell &cell = netlist.get_cell(cell_id);
+            if(cell.get_bits() <= mid_bits_of_lib){
+                ff_cell_ids_limit_high.insert(cell_id);
+            }else{
+                clustering_res.push_back(std::vector<int>{cell_id});
+            }
+        }
+
         std::unordered_map<int,int> bits_sum;
         std::unordered_map<int,std::vector<int>> bits_cell_ids;        
-        for(int cell_id : ff_cell_ids){
+        for(int cell_id : ff_cell_ids_limit_high){
             const circuit::Cell &cell = netlist.get_cell(cell_id);
             int bits = cell.get_bits();
             bits_sum[bits] += bits;
@@ -792,8 +806,7 @@ void CommandManager::extremely_fast_clustering_limit_high_bits(){
 
             }
         }
-
-        std::vector<std::vector<int>> clustering_res;        
+               
         for(const auto &it : bits_clustering_map){
             int bits = it.first;
             const std::vector<int> &cell_ids = bits_cell_ids.at(bits);
@@ -805,8 +818,7 @@ void CommandManager::extremely_fast_clustering_limit_high_bits(){
         // banking        
         for(const auto &cluster : clustering_res){ 
             netlist.cluster_cells(cluster);
-        }        
-        std::cout<<"Banking end"<<std::endl;
+        }                
     }
 
     std::cout<<"Legalizer start"<<std::endl;
@@ -816,7 +828,7 @@ void CommandManager::extremely_fast_clustering_limit_high_bits(){
         // rollback
         std::cout<<"Legal fail"<<std::endl;
         solution_manager.switch_to_best_solution();
-        return;
+        return false;
     }
 
     // skip timer?
@@ -841,9 +853,11 @@ void CommandManager::extremely_fast_clustering_limit_high_bits(){
         std::cout<<"Keep best solution"<<std::endl;
         std::cout<<"COST/RUNTIME "<<current_cost<<" "<<runtime.get_runtime_seconds()<<std::endl;
         solution_manager.keep_best_solution();
+        return true;
     }else{
         std::cout<<"rollback to best solution"<<std::endl;
         solution_manager.switch_to_best_solution();
+        return false;
     }
 
 }

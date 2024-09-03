@@ -28,9 +28,9 @@ namespace command {
         void SA();
         void kmeans_cluster();
         void faster_clustering();
-        void extremely_fast_clustering();        
+        bool extremely_fast_clustering();        
         void clustering_clean_solution();
-        void extremely_fast_clustering_limit_high_bits();
+        bool extremely_fast_clustering_limit_high_bits();
         void swap_ff();
         void dry_banking();
     private:
