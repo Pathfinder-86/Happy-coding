@@ -55,9 +55,11 @@ class CostCalculator{
         void update_cells_cost_after_clustering_skip_timer(const std::vector<int> &cells_id);
         void rollack_clustering_res(const std::vector<int> &cells_id);
         void rollack_timer_res(const std::vector<int> &cells_id);
-        double get_cost() const {
-            std::cout << "timing_cost: " << timing_cost << " power_cost: " << power_cost << " area_cost: " << area_cost << " utilization_cost: " << get_utilization_cost() << std::endl;
+        double get_cost() const {            
             return timing_cost + power_cost + area_cost + get_utilization_cost();
+        }
+        void print_cost() const {
+            std::cout<<"Cost: "<<timing_cost<<" "<<power_cost<<" "<<area_cost<<" "<<get_utilization_cost()<<std::endl;
         }
         double get_timing_cost() const {
             return timing_cost;
@@ -103,8 +105,14 @@ class CostCalculator{
         void init(){
             set_factors();
             calculate_cost();
-        }
+        }        
         void update_cells_cost_after_clustering(const std::vector<int> &clustering_cells_id,const std::vector<int> &timing_cells_id);
+        const CellCost &get_cell_cost(int cell_id) const{
+            return sequential_cells_cost[cell_id];
+        }
+        double get_cell_timing_cost(int cell_id) const{
+            return sequential_cells_cost[cell_id].get_timing_cost();
+        }        
     private:
         double timing_cost,power_cost,area_cost;
         std::vector<CellCost> sequential_cells_cost;

@@ -20,8 +20,7 @@ double FFLibcellCostManager::get_cluster_cost_change(const std::vector<int> &cel
     }
     int cluster_lib_cell_id = get_best_libcell_for_bit(sum_bits);
     double cluster_cost = get_lib_cell_cost(cluster_lib_cell_id);
-    cost_change += cluster_cost;
-
+    cost_change += cluster_cost;    
     return cost_change;
 }
 

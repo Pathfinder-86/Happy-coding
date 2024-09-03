@@ -93,11 +93,7 @@ namespace estimator {
                 }
             }
             double get_lib_cell_cost(int lib_cell_id) const{
-                if(ff_libcells_cost.find(lib_cell_id) == ff_libcells_cost.end()){
-                    return 0.0;
-                }else{
-                    return ff_libcells_cost.at(lib_cell_id).get_total_cost();
-                }
+                return ff_libcells_cost.at(lib_cell_id).get_total_cost();
             }
             int find_mid_bits_of_lib();
             int get_mid_bits_of_lib() const{

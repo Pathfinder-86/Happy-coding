@@ -400,7 +400,7 @@ void Legalizer::place_available_cells_on_empty_sites_sort_by_slack(){
         sorted_not_on_site_cells_id.push_back(cid);
     }
     std::sort(sorted_not_on_site_cells_id.begin(),sorted_not_on_site_cells_id.end(),[&](int a, int b){
-        return cells.at(a).get_slack() < cells.at(b).get_slack();
+        return cells.at(a).get_tns() > cells.at(b).get_tns();
     });
     std::cout<<"LEGAL:: place_available_cells_on_empty_sites_sort_by_slack"<<std::endl;
     for(int cid : not_on_site_cells_id){        
@@ -481,7 +481,7 @@ void Legalizer::move_unavailable_cells_to_empty_sites_sort_by_slack(){
         sorted_not_on_site_cells_id.push_back(cid);
     }
     std::sort(sorted_not_on_site_cells_id.begin(),sorted_not_on_site_cells_id.end(),[&](int a, int b){
-        return cells.at(a).get_slack() < cells.at(b).get_slack();
+        return cells.at(a).get_tns() > cells.at(b).get_tns();
     });
     for(int cid : sorted_not_on_site_cells_id){        
         circuit::Cell &cell = cells.at(cid);

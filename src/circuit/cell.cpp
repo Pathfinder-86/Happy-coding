@@ -19,8 +19,6 @@ void Cell::move(int x, int y){
         pin.set_x(pin.get_offset_x() + x);
         pin.set_y(pin.get_offset_y() + y);
     }
-    timer::Timer &timer = timer::Timer::get_instance();
-    timer.update_timing( get_id() );
 }
 
 double Cell::get_delay() const{
@@ -35,13 +33,16 @@ double Cell::get_power() const {
     return lib_cell.get_power();
 }
 
-void Cell::calculate_slack(){
+void Cell::calculate_tns(){
     timer::Timer &timer = timer::Timer::get_instance();    
-    double worst_slack = 0.0;
+    double tns = 0.0;
     for(int pid : input_pins_id){
-        worst_slack = std::min(worst_slack,timer.get_slack(pid));
+        double slack = timer.get_slack(pid);
+        if(slack < 0){
+            tns+= -slack;
+        }
     }
-    set_slack(worst_slack);
+    set_tns(tns);
 }
 
 bool Cell::overlap(const Cell &cell) const {

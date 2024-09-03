@@ -31,6 +31,14 @@ namespace estimator {
                 this->input_delay_nodes = timer.get_input_delay_nodes();
                 this->output_delay_nodes = timer.get_output_delay_nodes();
                 this->cell_id_to_site_id_map = legalizer.get_cell_id_to_site_id_map();
+            }     
+            void update_timing(const std::vector<int> &cells_id){
+                const timer::Timer &timer = timer::Timer::get_instance();
+                this->dpin_nodes = timer.get_dpin_nodes();
+                this->qpin_nodes = timer.get_qpin_nodes();
+                this->input_delay_nodes = timer.get_input_delay_nodes();
+                this->output_delay_nodes = timer.get_output_delay_nodes();
+                update_timing_cells_by_id(cells_id);
             }
             double get_cost() const{
                 return cost;
@@ -62,6 +70,7 @@ namespace estimator {
             const std::unordered_map<int,int>& get_ff_cell_id_to_clk_group_id() const{
                 return ff_cell_id_to_clk_group_id;
             }
+            void update_timing_cells_by_id(const std::vector<int> &cells_id);
             void update_cells_by_id(const std::vector<int> &cells_id);
             void rollback_cells_by_id(const std::vector<int> &cells_id);
             void remove_cell_from_clk_group(int cell_id){
@@ -186,8 +195,12 @@ namespace estimator {
                 switch_to_other_solution(current_solution);
             }
             void update_best_solution_after_clustering(const std::vector<int> &cells_id,double cost);
-            void rollack_clustering_res_using_best_solution(const std::vector<int> &cells_id);
-            void rollack_clustering_res_using_best_solution_skip_timer(const std::vector<int> &cells_id);       
+            void rollack_clustering_res_using_best_solution(const std::vector<int> &cells_id,const std::vector<int> &timing_cells_id);
+            void rollack_clustering_res_using_best_solution_skip_timer(const std::vector<int> &cells_id);
+            void keep_timing(const std::vector<int> &cells_id); 
+            void keep_cost(double new_cost){
+                this->best_solution.update_cost(new_cost);
+            }
         private:
             Solution best_solution;
             Solution init_solution;

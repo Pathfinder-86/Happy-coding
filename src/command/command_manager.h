@@ -28,6 +28,7 @@ namespace command {
         void SA();
         void kmeans_cluster();
         void swap_ff();
+        void dry_banking();
     private:
         CommandManager() {}
         CommandManager(const CommandManager&) = delete;

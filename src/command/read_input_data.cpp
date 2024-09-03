@@ -18,6 +18,7 @@
 #include "../runtime/runtime.h"
 #include "../estimator/lib_cell_evaluator.h"
 #include "../circuit/original_netlist.h"
+#include <iomanip>
 namespace command{
 
 void check_input_data(){
@@ -352,26 +353,7 @@ void CommandManager::read_input_data(const std::string &filename) {
     std::cout << "PARSE:: FINISH" << std::endl;    
     runtime_manager.get_runtime();
     
-    std::cout<<"EVALUATOR:: LIB_INIT"<<std::endl;
-    // libcell evaluator
-    estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();      
-    ff_libcell_cost_manager.init();
-    std::cout<<"EVALUATOR:: LIB_END"<<std::endl;
-    runtime_manager.get_runtime();
-
-    // init timing
-    std::cout<<"TIMER:: INIT"<<std::endl;
-    timer.init_timing(init_pin_slack_map);
-    // calculate each cell worst slack
-    for(auto &cell : netlist.get_mutable_cells()){
-        cell.calculate_slack();
-    }
-    // create timing nodes and connection    
-    //timer.create_timing_graph();
-    std::cout<<"TIMER:: FINISH"<<std::endl;
-    runtime_manager.get_runtime();
-
-
+    
     std::cout<<"LEGAL:: INIT"<<std::endl;
     // update bins
     legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
@@ -386,16 +368,42 @@ void CommandManager::read_input_data(const std::string &filename) {
     runtime_manager.get_runtime();
 
 
+    std::cout<<"EVALUATOR:: LIB_INIT"<<std::endl;
+    // libcell evaluator
+    estimator::FFLibcellCostManager &ff_libcell_cost_manager = estimator::FFLibcellCostManager::get_instance();      
+    ff_libcell_cost_manager.init();
+    std::cout<<"EVALUATOR:: LIB_END"<<std::endl;
+    runtime_manager.get_runtime();
+
+    // init timing
+    std::cout<<"TIMER:: INIT"<<std::endl;
+    timer.create_timing_graph();
+    runtime_manager.get_runtime();
+    timer.init_timing(init_pin_slack_map);
+    // calculate each cell worst slack
+    for(auto &cell : netlist.get_mutable_cells()){
+        cell.calculate_tns();        
+    }
+
+    // create timing nodes and connection        
+    std::cout<<"TIMER:: FINISH"<<std::endl;
+
+    int ff_cell_size = netlist.cells_size();
+    std::cout<<"FF_CELL_SIZE:"<<ff_cell_size<<std::endl;
+
     // calculate init 
-    estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();
+    estimator::CostCalculator &cost_calculator = estimator::CostCalculator::get_instance();    
     cost_calculator.init();
+    std::cout<<"CostCalculator cost:"<<cost_calculator.get_cost()<<std::endl;
     estimator::SolutionManager &solution_manager = estimator::SolutionManager::get_instance();    
     solution_manager.keep_init_solution();
-
+    std::cout << std::fixed << std::setprecision(2)<<"init cost:"<<solution_manager.get_best_solution().get_cost() <<std::endl;    
     std::cout<<"PARSE:: read_input_data and init FINISH"<<std::endl;
 
 }
-
+// 1034711400448
+// 1034711400448
+// 1034711424000
 
 
 }

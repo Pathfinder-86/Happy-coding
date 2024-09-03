@@ -15,6 +15,12 @@ namespace runtime {
             static RuntimeManager instance;
             return instance;
         }
+        double get_runtime_seconds() const {
+            std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
+            std::chrono::duration<double> elapsed_seconds = current_time - start_time;
+            double runtime_seconds = elapsed_seconds.count();
+            return runtime_seconds;
+        }
 
         void get_runtime() const {
             std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();

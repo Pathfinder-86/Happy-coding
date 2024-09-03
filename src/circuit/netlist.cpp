@@ -27,41 +27,6 @@ bool Netlist::check_cells_location(){
 }
 
 int Netlist::swap_ff(int cell_id, int new_lib_cell_id){
-    Cell &cell = get_mutable_cell(cell_id);
-    int bits = cell.get_bits();
-    cell.set_lib_cell_id(new_lib_cell_id);
-    const design::Design &design = design::Design::get_instance();
-    const design::LibCell &new_lib_cell = design.get_lib_cell(new_lib_cell_id);
-    cell.set_w(new_lib_cell.get_width());
-    cell.set_h(new_lib_cell.get_height());    
-    legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
-    legalizer.replacement_cell(cell_id);
-    if(!legalizer.legalize()){
-        std::cout<<"SWAP_FF:: legalization fail\n";
-        return 1;
-    }
-
-    std::vector<int> input_pins_id = cell.get_input_pins_id();
-    std::vector<int> output_pins_id = cell.get_output_pins_id();
-    const std::vector<std::pair<double, double>> &new_lib_cell_input_pins_position = new_lib_cell.get_input_pins_position();
-    const std::vector<std::pair<double, double>> &new_lib_cell_output_pins_position = new_lib_cell.get_output_pins_position();
-    for(int i = 0; i < bits; i++){
-        int input_pin_id = input_pins_id.at(i);
-        int output_pin_id = output_pins_id.at(i);
-        Pin &input_pin = get_mutable_pin(input_pin_id);
-        Pin &output_pin = get_mutable_pin(output_pin_id);
-        input_pin.set_offset_x(new_lib_cell_input_pins_position.at(i).first);
-        input_pin.set_offset_y(new_lib_cell_input_pins_position.at(i).second);
-        input_pin.set_x(cell.get_x() + new_lib_cell_input_pins_position.at(i).first);
-        input_pin.set_y(cell.get_y() + new_lib_cell_input_pins_position.at(i).second);
-        output_pin.set_offset_x(new_lib_cell_output_pins_position.at(i).first);
-        output_pin.set_offset_y(new_lib_cell_output_pins_position.at(i).second);
-        output_pin.set_x(cell.get_x() + new_lib_cell_output_pins_position.at(i).first);
-        output_pin.set_y(cell.get_y() + new_lib_cell_output_pins_position.at(i).second);
-    }
-
-    timer::Timer &timer = timer::Timer::get_instance();
-    timer.update_timing(cell_id);
     return 0;
 }
 
@@ -555,10 +520,6 @@ int Netlist::modify_circuit_since_divide_cell(int cell_id, const int new_lib_cel
         return 1;
     }
 
-    // update timing information
-    timer::Timer &timer = timer::Timer::get_instance();
-    timer.update_timing(cell_id);
-    timer.update_timing(new_cell_id);
     return 0;
 }
 

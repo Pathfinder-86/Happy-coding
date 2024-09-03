@@ -34,6 +34,8 @@ public:
     bool get_is_input() const { return is_input; }
     void set_is_output(bool is_output) { this->is_output = is_output; }
     bool get_is_output() const { return is_output; }
+    bool is_input_port() const { return is_port && is_output; }
+    bool is_output_port() const { return is_port && is_input; }
 private:
     // netlist information
     int id;

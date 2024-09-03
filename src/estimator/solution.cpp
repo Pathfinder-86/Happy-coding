@@ -48,6 +48,17 @@ void SolutionManager::update_best_solution_after_clustering(const std::vector<in
     
 }
 
+void SolutionManager::keep_timing(const std::vector<int> &cells_id){
+    this->best_solution.update_timing(cells_id);
+}
+
+void Solution::update_timing_cells_by_id(const std::vector<int> &cells_id){
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    for(int cell_id : cells_id){
+        cells[cell_id].set_tns( netlist.get_cell(cell_id).get_tns() );
+    }    
+}
+
 void Solution::update_cells_by_id(const std::vector<int> &cells_id){
     // Netlist
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
@@ -97,12 +108,18 @@ void SolutionManager::rollack_clustering_res_using_best_solution_skip_timer(cons
     this->best_solution.rollback_legal_cell_site_mapping_after_clustering(cells_id);
 }
 
-void SolutionManager::rollack_clustering_res_using_best_solution(const std::vector<int> &cells_id){
+void SolutionManager::rollack_clustering_res_using_best_solution(const std::vector<int> &cells_id,const std::vector<int> &timing_cells_id){
     // ROLLBACK solution -> netlist
     this->best_solution.rollback_cells_by_id(cells_id);
     // timer    
     timer::Timer &timer = timer::Timer::get_instance();
-    timer.update_timing_by_cells_id(cells_id);
+    timer.switch_to_other_solution(this->best_solution.get_d_pins_node(),this->best_solution.get_q_pins_node(),this->best_solution.get_input_delay_nodes(),this->best_solution.get_output_delay_nodes());
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    for(int cell_id : timing_cells_id){
+        circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
+        double tns = this->best_solution.get_cell(cell_id).get_tns();
+        cell.set_tns(tns);
+    }
     // legalizer
     this->best_solution.rollback_legal_cell_site_mapping_after_clustering(cells_id);
 }
@@ -157,3 +174,18 @@ void Solution::rollback_cells_by_id(const std::vector<int> &cells_id){
 }
 
 }
+/*
+ 
+             1675171      1675171
+            -1668020     -1667811
+            __________   ________
+              7151          7360     
+
+            1674962       1675171    
+           -1666186      -1665835
+            _________     ________
+              8776          9356
+            
+
+            
+*/

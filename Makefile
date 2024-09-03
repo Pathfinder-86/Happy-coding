@@ -3,6 +3,7 @@ CXX := g++
 
 # Flags
 CXXFLAGS := -Wall -Wextra -std=c++17 -fopenmp -g
+LDFLAGS := -static
 
 # Directories
 SRC_DIR := src
@@ -24,7 +25,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 # Main target
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
+	$(CXX) $(CXXFLAGS) $(OBJS) -o $@ $(LDFLAGS)
 
 # Compile source files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp

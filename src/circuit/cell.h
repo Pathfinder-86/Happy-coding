@@ -14,11 +14,11 @@ private:
     int id;
     int lib_cell_id;
     int parent;
-    double slack;
+    double tns;
     bool sequential;
 public:
-    Cell(): x(0), y(0), w(0), h(0), id(-1), lib_cell_id(-1), parent(-1), slack(0.0), sequential(false), other_pin_id(-1) {}
-    Cell(int x, int y, int w, int h) : x(x), y(y), w(w), h(h), id(-1), lib_cell_id(-1), parent(-1), slack(0.0), sequential(false), other_pin_id(-1) {}
+    Cell(): x(0), y(0), w(0), h(0), id(-1), lib_cell_id(-1), parent(-1), tns(0.0), sequential(false), other_pin_id(-1) {}
+    Cell(int x, int y, int w, int h) : x(x), y(y), w(w), h(h), id(-1), lib_cell_id(-1), parent(-1), tns(0.0), sequential(false), other_pin_id(-1) {}
     int get_x() const { return x; }
     int get_y() const { return y; }
     int get_w() const { return w; }
@@ -58,13 +58,13 @@ public:
     void set_parent(int parent) { this->parent = parent; }
     int get_parent() const { return parent; }
     bool is_clustered() const { return parent != -1; }
-    // slack
+    // tns
     double get_delay() const;
-    void calculate_slack();
-    void set_slack(double slack) { this->slack = slack; }
-    double get_slack() const { return slack; }
+    void calculate_tns();
+    void set_tns(double tns) { this->tns = tns; }
+    double get_tns() const { return tns; }
     // area
-    double get_area() const { return w * h; }
+    double get_area() const { return 1.0 * w * h; }
     // power
     double get_power() const;
     // clear: if cell been clustered, consider it as a empty point
