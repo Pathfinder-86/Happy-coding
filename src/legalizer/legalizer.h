@@ -136,7 +136,8 @@ class Legalizer{
             return cell_id_to_site_id_map.at(cell_id);
         }
         void update_cell_to_site(int cell_id, const std::vector<int> &site_ids);
-
+        bool replace_all();
+        void tetris();
     private:   
         std::vector<Row> rows; // const 
         std::unordered_map<int,std::vector<int>> row_id_to_sites_id_map; //const

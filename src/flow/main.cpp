@@ -27,7 +27,13 @@ int main(int argc,char *argv[]) {
     if(std::get<bool>(config_manager.get_config_value("testing_mode"))) {
         command_manager.read_input_data(input_file);        
         //command_manager.SA();
-        command_manager.kmeans_cluster();
+        //command_manager.kmeans_cluster();
+        //command_manager.faster_clustering();
+
+        command_manager.extremely_fast_clustering_limit_high_bits();
+        //command_manager.swap_ff();  
+        //command_manager.extremely_fast_clustering();
+
         //command_manager.swap_ff();
         //command_manager.write_output_data(output_file);
         if(std::get<bool>(config_manager.get_config_value("run_tiny"))) {
@@ -49,11 +55,6 @@ int main(int argc,char *argv[]) {
         command_manager.write_output_data_from_best_solution(output_file);
         runtime_manager.get_runtime();
     }
-    //10347114135552
-    //10347114240000
-
-    //10347114240000
-    //10347114135552
 
     return 0;
 }

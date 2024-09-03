@@ -17,6 +17,7 @@ class UtilizationCalculator {
         int get_overflow_bins_num() const{
             return overflow_bins_id.size();
         }
+        void update_overflow_bins();
         double add_cell_cost_change(int cell_id);
         void add_cell(int cell_id);
         void remove_cell(int cell_id);

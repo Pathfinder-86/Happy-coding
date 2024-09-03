@@ -110,21 +110,22 @@ void Legalizer::init_blockage(){
     }
     // ignore sites been blocked by combinational cells
     std::vector<Site> new_sites;
+    int site_count = 0;
     for(const Site &site : sites){
         if(site.is_empty()){
             new_sites.push_back(site);
+            site_count++;
         }
     }
+    std::cout<<"LEGAL:: empty_sites / total_sites: "<<site_count<<"/"<<sites.size()<<std::endl;
     sites = new_sites;
 }
 
 void Legalizer::init_remining_sites(){
     for(int i=0;i<sites.size();i++){
         sites[i].set_id(i);
-    }
-    for(const Site &site : sites){
-        empty_sites_id.insert(site.get_id());
-        sites_xy_to_id_map[std::make_pair(site.get_x(),site.get_y())] = site.get_id();        
+        empty_sites_id.insert(i);
+        sites_xy_to_id_map[std::make_pair(sites[i].get_x(),sites[i].get_y())] = i;
     }
 }
 
@@ -224,14 +225,188 @@ void Legalizer::init(){
     sort_rows_by_y();
     init_blockage();
     sort_sites_by_y_then_x();
-    //remove_overflow_bins(); ??? move some ff ?
     init_remining_sites();    
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    not_on_site_cells_id = netlist.get_sequential_cells_id();
-    place_available_cells_on_empty_sites();    
-    move_unavailable_cells_to_empty_sites();
+    //const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    //not_on_site_cells_id = netlist.get_sequential_cells_id();
+    //place_available_cells_on_empty_sites();    
+    //move_unavailable_cells_to_empty_sites();
     std::cout<<"LEGAL:: finish"<<std::endl;
     runtime_manager.get_runtime();    
+}
+
+bool Legalizer::replace_all(){
+    for(int i=0;i<sites.size();i++){        
+        empty_sites_id.insert(i);
+    }    
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    not_on_site_cells_id = netlist.get_sequential_cells_id();
+    std::cout<<"LEGAL:: replace_all size"<<not_on_site_cells_id.size()<<std::endl;
+    tetris();
+    return valid();
+}
+
+
+void Legalizer::tetris(){
+    // libcell_view
+    circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    const std::vector<circuit::Cell> &cells = netlist.get_cells();
+
+    std::map<std::pair<int,int>,int> views_hash;
+    // id, width, height
+    std::vector<std::vector<int>> views;
+    std::unordered_map<int,int> cell_id_view_id_hash;
+    std::unordered_map<int,std::vector<int>> view_id_cells_id_hash;
+
+    for(int cell_id : not_on_site_cells_id){
+        const circuit::Cell &cell = cells.at(cell_id);
+        int width = cell.get_w();
+        int height = cell.get_h();
+        if(views_hash.count( std::make_pair(width,height) )){
+            int view_id = views_hash[std::make_pair(width,height)];
+            cell_id_view_id_hash[cell_id] = view_id;
+            view_id_cells_id_hash[view_id].push_back(cell_id);
+            continue;
+        }
+        int view_id = views.size();
+        views_hash[std::make_pair(width,height)] = view_id;
+        views.push_back(std::vector<int>{view_id,width,height});
+        cell_id_view_id_hash[cell_id] = view_id;
+        view_id_cells_id_hash[view_id].push_back(cell_id);
+    }
+    
+
+    for(auto &it : views){
+        int width = it[1];
+        int height = it[2];
+        it[1] = (width % get_site_width() == 0)? width / get_site_width() : width / get_site_width() + 1;
+        it[2] = (height % get_site_height() == 0)? height / get_site_height() : height / get_site_height() + 1;        
+        std::cout<<"LEGAL:: tetris views ("<<width<<","<<height<<") ->"<<" ("<<it[1]<<","<<it[2]<<")"<<std::endl;
+    }
+
+    // sorted by view size, from large to small
+    std::sort(views.begin(),views.end(),[](const std::vector<int> &a, const std::vector<int> &b){
+        return a[1]*a[2] > b[1]*b[2];
+    });    
+
+    // convert empty_sites to views
+    std::vector<std::unordered_set<int>> views_empty_sites_id(views.size(),empty_sites_id);
+    std::vector<std::unordered_set<int>> views_available_sites_id(views.size(),std::unordered_set<int>());
+    std::vector<std::unordered_map<int,std::vector<int>>> views_available_sites_id_contain_sites_id(views.size());
+    std::vector<std::unordered_map<int,int>> views_sites_id_to_root_site_id(views.size());
+
+    for(int id : empty_sites_id){
+        const Site &site = sites[id];
+        int root_site_id = site.get_id();
+        for(int j=0;j<views.size();j++){                      
+            const std::vector<int> &view = views[j];
+            int view_id = view[0];
+            int x_site_num = view[1];
+            int y_site_num = view[2];
+            if(!views_empty_sites_id[view_id].count(root_site_id)){                
+                continue;
+            }  
+            
+            int root_site_x = site.get_x();
+            int root_site_y = site.get_y();
+            std::vector<int> sites_id;
+            bool found = true;
+            for(int c=0;c<x_site_num;c++){
+                for(int r=0;r<y_site_num;r++){
+                    int new_x = root_site_x + c*get_site_width();
+                    int new_y = root_site_y + r*get_site_height();
+                    auto it = sites_xy_to_id_map.find(std::make_pair(new_x,new_y));
+                    if(it == sites_xy_to_id_map.end()){
+                        found = false;
+                        sites_id.clear();
+                        break;
+                    }
+                    int new_site_id = it->second;
+                    if(!views_empty_sites_id[view_id].count(new_site_id)){
+                        found = false;
+                        sites_id.clear();
+                        break;
+                    }                    
+                    sites_id.push_back(new_site_id);
+                }
+                if(!found){
+                    break;
+                }
+            }
+
+            if(sites_id.empty()){
+                continue;
+            }else if(sites_id.size() == x_site_num * y_site_num){
+                // remove sites_id from views_empty_sites_id
+                views_available_sites_id[view_id].insert(root_site_id);
+                for(int site_id : sites_id){
+                    views_empty_sites_id[view_id].erase(site_id);
+                    views_sites_id_to_root_site_id[view_id][site_id] = root_site_id;
+                }
+                views_available_sites_id_contain_sites_id[view_id][root_site_id] = sites_id;
+            }else{
+                std::cerr<<"LEGAL:: tetris sites_id.size() != x_site_num * y_site_num"<<std::endl;
+            }   
+        }
+    }
+
+    // bins multi-view graph completed
+
+    for(auto &it : views){
+        int view_id = it[0];        
+        // place view cells
+        const std::vector<int> &cells_id = view_id_cells_id_hash[view_id];
+        for(int cell_id : cells_id){
+            circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
+            int x = cell.get_x();
+            int y = cell.get_y();
+            // find nearest empty site on view[view_id]
+            int min_dis = INT_MAX;
+            int nearest_site_id = -1;
+            for(int site_id : views_available_sites_id[view_id]){
+                const Site &site = sites.at(site_id);
+                int site_x = site.get_x();
+                int site_y = site.get_y();
+                int dis = abs(x - site_x) + abs(y - site_y);
+                if(dis < min_dis){
+                    min_dis = dis;
+                    nearest_site_id = site_id;
+                }
+            }
+
+            if(nearest_site_id == -1){                
+                continue;
+            }
+                
+
+            // remove root_site_id which using sites_id in other views
+            for(int site_id : views_available_sites_id_contain_sites_id[view_id][nearest_site_id]){          
+                for(const auto &view : views){                    
+                    int remove_view_id = view[0];
+                    if(remove_view_id == view_id){
+                        continue;
+                    }
+
+                    if(views_sites_id_to_root_site_id[remove_view_id].count(site_id)){
+                        int root_site_id = views_sites_id_to_root_site_id[remove_view_id][site_id];                                                
+                        views_available_sites_id[remove_view_id].erase(root_site_id);
+                        views_available_sites_id_contain_sites_id[remove_view_id].erase(root_site_id);
+                    }                    
+                }
+            }
+
+            //remove itself
+            views_available_sites_id[view_id].erase(nearest_site_id);
+            views_available_sites_id_contain_sites_id[view_id].erase(nearest_site_id);
+
+
+            // place cell on nearest_site_id
+            const Site &site = sites.at(nearest_site_id);
+            if(site.get_x() != x || site.get_y() != y){                
+                cell.move(site.get_x(),site.get_y());  
+            }
+            not_on_site_cells_id.erase(cell_id); 
+        }
+    }  
 }
 
 bool Legalizer::extend_at_site_id(const int root_site_id,std::vector<int> &sites_id,int x_site_num,int y_site_num){  
@@ -278,8 +453,7 @@ void Legalizer::remove_overflow_bins(){
             if(site.get_x() >= rx || site.get_rx() <= x || site.get_y() >= ry || site.get_ry() <= y){
                 it++;
                 continue;
-            }
-            std::cout<<"LEGAL:: remove site ("<<site.get_x()<<","<<site.get_y()<<")"<<std::endl;
+            }            
             it = sites.erase(it);
         }
 
@@ -440,6 +614,8 @@ void Legalizer::move_unavailable_cells_to_empty_sites(){
         return;
     }
     std::cout<<"LEGAL:: move_unavailable_cells_to_empty_sites"<<std::endl;
+    int total = not_on_site_cells_id.size();
+    int count = 0;
     for(auto it = not_on_site_cells_id.begin(); it != not_on_site_cells_id.end();){
         int cid = *it;
         circuit::Cell &cell = cells.at(cid);
@@ -463,9 +639,12 @@ void Legalizer::move_unavailable_cells_to_empty_sites(){
                 empty_sites_id.erase(site_id);
                 site_id_to_cell_id_map[site_id] = cid;
                 cell_id_to_site_id_map[cid].push_back(site_id);
-            }                           
+            }        
+            count++;
+            std::cout<<"Legal complete: ("<<count<<"/"<<total<<") "<< 1.0 * count / (1.0 * total)<<" %"<<std::endl;
         }else{
             it++;
+            std::cout<<"Legal fail :O"<<std::endl;
         }
     }
 }

@@ -95,7 +95,7 @@ namespace estimator {
             double get_lib_cell_cost(int lib_cell_id) const{
                 return ff_libcells_cost.at(lib_cell_id).get_total_cost();
             }
-            int find_mid_bits_of_lib();
+            void find_mid_bits_of_lib();
             int get_mid_bits_of_lib() const{
                 return mid_bits_of_lib;
             }
@@ -121,6 +121,9 @@ namespace estimator {
                 return ff_libcells_cost.at(lib_cell_id);
             }
             double get_cluster_cost_change(const std::vector<int> &cluster) const;            
+            const std::unordered_map<int,int>& get_best_libcell_bits() const{
+                return best_libcell_bits;
+            }
         private:
             std::unordered_map<int,FFLibCellCost> ff_libcells_cost; // lib_cell_id -> cost            
             std::unordered_map<int,std::vector<FFLibCellCost>> bits_ff_libcells_cost;

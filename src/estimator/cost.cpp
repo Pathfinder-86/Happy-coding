@@ -20,22 +20,23 @@ void CostCalculator::calculate_cost(){
     reset();        
     const FFLibcellCostManager& ff_libcell_cost_manager = FFLibcellCostManager::get_instance();
     circuit::Netlist& netlist = circuit::Netlist::get_instance();
-    const std::vector<circuit::Cell>& cells = netlist.get_cells();
-    const design::Design& design = design::Design::get_instance();
-    double area_factor = design.get_area_factor();
-    std::cout<<"COST"<<std::endl;
+    const std::vector<circuit::Cell>& cells = netlist.get_cells();    
     for(int i=0;i<cells.size();i++){            
-        int cell_id = i;     
         const circuit::Cell& cell = cells.at(i);
-        double cell_timing_cost = cell.get_tns() * timing_factor; 
-        int lib_cell_id = cell.get_lib_cell_id();
-        const FFLibCellCost& lib_cell_cost = ff_libcell_cost_manager.get_ff_libcell_cost(lib_cell_id);
-        double cell_power_cost = lib_cell_cost.get_power_cost();
-        double cell_area_cost = lib_cell_cost.get_area_cost();        
+        double cell_timing_cost = 0.0;
+        double cell_power_cost = 0.0;
+        double cell_area_cost = 0.0;
+        if(!cell.is_clustered()){                    
+            cell_timing_cost = cell.get_tns() * timing_factor; 
+            int lib_cell_id = cell.get_lib_cell_id();
+            const FFLibCellCost& lib_cell_cost = ff_libcell_cost_manager.get_ff_libcell_cost(lib_cell_id);
+            cell_power_cost = lib_cell_cost.get_power_cost();
+            cell_area_cost = lib_cell_cost.get_area_cost();        
+        }
         add_timing_cost(cell_timing_cost);
         add_power_cost(cell_power_cost);
         add_area_cost(cell_area_cost);
-        sequential_cells_cost.push_back( CellCost(cell_id,cell_timing_cost,cell_power_cost,cell_area_cost) );        
+        sequential_cells_cost.push_back( CellCost(i,cell_timing_cost,cell_power_cost,cell_area_cost) );        
     }
 
     

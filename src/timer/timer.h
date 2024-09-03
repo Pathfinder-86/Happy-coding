@@ -133,7 +133,13 @@ public:
     void init();
     void init_propagate_delay();
     void update();
-    void propagate_delay();        
+    void propagate_delay(); 
+    const std::vector<int>& get_fanout_input_delay_nodes_id() const{
+        return fanout_input_delay_nodes_id;
+    }
+    const std::vector<int>& get_d_pin_nodes_id() const{
+        return d_pin_nodes_id;
+    }    
 private:
     int id;
     double delay;
@@ -279,7 +285,7 @@ public:
     void traverse_each_net_to_add_connection();
     void init_q_pin_delay();    
     void switch_to_other_solution(const std::unordered_map<int,DpinNode> &dpin_nodes,const std::unordered_map<int,QpinNode> &qpin_nodes,const std::unordered_map<int,InputDelayNode> &input_delay_nodes,const std::unordered_map<int,OutputDelayNode> &output_delay_nodes);
-    void update_cells_slack(const std::unordered_set<int> &affected_cells_id_set);
+    void update_cells_tns(const std::unordered_set<int> &affected_cells_id_set);    
     std::unordered_set<int> get_affected_cells_id_by_affected_d_pins_id();
     void reset_affetced_d_pins_id_set(){
         affected_d_pins_id_set.clear();
@@ -288,6 +294,9 @@ public:
         affected_d_pins_id_set.insert(d_pin_id);
     }
     void add_intput_delay_node_to_pins_id();
+
+    void update_timing_and_cells_tns(int cell_id);
+
 private:
     // slack on each node
     std::unordered_map<int,DpinNode> dpin_nodes;

@@ -20,16 +20,19 @@ namespace estimator {
             void update_cost(double cost){
                 this->cost = cost;
             }
-            void update(const CostCalculator &cost_calculator, const circuit::Netlist &netlist, const timer::Timer &timer, const legalizer::Legalizer &legalizer){
-                this->cost = cost_calculator.get_cost();
+            void update(double cost, const circuit::Netlist &netlist, const timer::Timer &timer, const legalizer::Legalizer &legalizer){
+                this->cost = cost;
+                // netlist
                 this->cells = netlist.get_cells();
                 this->sequential_cells_id = netlist.get_sequential_cells_id();
                 this->clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();
                 this->ff_cell_id_to_clk_group_id = netlist.get_ff_cell_id_to_clk_group_id();
+                // timer
                 this->dpin_nodes = timer.get_dpin_nodes();
                 this->qpin_nodes = timer.get_qpin_nodes();
                 this->input_delay_nodes = timer.get_input_delay_nodes();
                 this->output_delay_nodes = timer.get_output_delay_nodes();
+                // legalizer
                 this->cell_id_to_site_id_map = legalizer.get_cell_id_to_site_id_map();
             }     
             void update_timing(const std::vector<int> &cells_id){

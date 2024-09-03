@@ -69,6 +69,18 @@ void UtilizationCalculator::reset_bins_utilization(){
     overflow_bins_id.clear();
 }
 
+void UtilizationCalculator::update_overflow_bins(){
+    overflow_bins_id.clear();
+    for(int i=0; i<bins.size(); i++){
+        for(int j=0; j<bins[i].size(); j++){
+            if(is_overflow_bin(i, j)){
+                overflow_bins_id.insert(std::make_pair(i, j));
+            }
+        }
+    }
+}
+
+
 void UtilizationCalculator::update_bins_utilization(){
     reset_bins_utilization();
 
@@ -138,9 +150,6 @@ void UtilizationCalculator::add_cell(int cell_id) {
                       (std::min((i + 1) * get_bin_height_int(), ry) - std::max(i * get_bin_height_int(), y));
             double utilization = overlap_area / design::Design::get_instance().get_bin_area();            
             bins[i][j].add_utilization(utilization);            
-            if( !overflow_bins_id.count(std::make_pair(i, j)) && is_overflow_bin(i, j)){
-                overflow_bins_id.insert(std::make_pair(i, j));                
-            }
         }
     }
 }
@@ -161,14 +170,8 @@ void UtilizationCalculator::remove_cell(int cell_id) {
         for (int j = start_bin_col; j <= end_bin_col; j++) {
             double overlap_area = 1.0 * (std::min((j + 1) * get_bin_width_int(), rx) - std::max(j * get_bin_width_int(), x)) *
                       (std::min((i + 1) * get_bin_height_int(), ry) - std::max(i * get_bin_height_int(), y));
-            double utilization = overlap_area / design::Design::get_instance().get_bin_area();
-            //std::cout<<"UTIL bin("<<i<<","<<j<<") before remove cell utilization: "<<bins[i][j].get_utilization()<<" remove utilization"<<utilization<<std::endl;
+            double utilization = overlap_area / design::Design::get_instance().get_bin_area();            
             bins[i][j].add_utilization( -utilization );
-            //std::cout<<"UTIL bin("<<i<<","<<j<<") after remove cell utilization: "<<bins[i][j].get_utilization()<<std::endl;
-            if( overflow_bins_id.count(std::make_pair(i, j))  && !is_overflow_bin(i, j)){
-                overflow_bins_id.erase(std::make_pair(i, j));
-                //std::cout<<"UTIL bin("<<i<<","<<j<<") remove overflow bin"<<std::endl;                
-            }
         }
     }
 }
@@ -191,10 +194,8 @@ double UtilizationCalculator::add_cell_cost_change(int cell_id) {
         for (int j = start_bin_col; j <= end_bin_col; j++) {
             double overlap_area = 1.0 * (std::min((j + 1) * get_bin_width_int(), rx) - std::max(j * get_bin_width_int(), x)) *
                       (std::min((i + 1) * get_bin_height_int(), ry) - std::max(i * get_bin_height_int(), y));
-            double utilization = overlap_area / design.get_bin_area();
-            //std::cout<<"UTIL bin("<<i<<","<<j<<") before utilization: "<<bins[i][j].get_utilization()<<" add utilization"<<utilization<<std::endl;
-            bins[i][j].add_utilization(utilization);
-            //std::cout<<"UTIL bin("<<i<<","<<j<<") after utilization: "<<bins[i][j].get_utilization()<<std::endl;
+            double utilization = overlap_area / design.get_bin_area();            
+            bins[i][j].add_utilization(utilization);            
             if(is_overflow_bin(i, j) && !overflow_bins_id.count(std::make_pair(i, j))){
                 overflow_bins_id.insert(std::make_pair(i, j));                
                 new_overflow_bins++;

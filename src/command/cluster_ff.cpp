@@ -29,21 +29,8 @@ void CommandManager::test_cluster_ff() {
     std::cout<<"COMMAND:: test cluster_ff:: First cell:"<<first_cell_id<<" cost:"<<first_cell_cost<<" Second cell:"<<second_cell_id<<" cost:"<<second_cell_cost<<std::endl;
     // MSG END
     std::vector<int> cells_id = {first_cell_id , second_cell_id};
-    int cluster_res = netlist.cluster_cells(cells_id);
-    if(cluster_res == 0){
-        std::cout<<"COMMAND:: test cluster_ff:: Cluster success"<<std::endl;
-    }else if(cluster_res != 1){ 
-        // only legal fail will change circuit       
-        // don't need to rollback solution
-        std::cout<<"COMMAND:: test cluster_ff:: Cluster fail"<<std::endl;
-        return;
-    }
-    else{
-        std::cout<<"COMMAND:: test cluster_ff:: Cluster fail due to legal fail rollback"<<std::endl;
-        // solution rollback
-        solution_manager.switch_to_other_solution(solution_manager.get_current_solution());
-        return;
-    }
+    
+    netlist.cluster_cells(cells_id);
    
     // update cost
     cost_calculator.calculate_cost();

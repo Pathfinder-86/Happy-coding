@@ -82,16 +82,15 @@ public:
     int cells_size() const { return cells.size(); }
     int pins_size() const { return pins.size(); }
     
-    // libcell mapping
+    // libcell mapping    
+    void modify_circuit_since_merge_cell(const std::vector<int> &cells_id,const int new_lib_cell_id);
     // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
     int try_legal_and_modify_circuit_since_merge_cell(const std::vector<int> &cells_id,const int new_lib_cell_id);
-    int try_legal_and_modify_circuit_since_merge_cell_skip_timer(const std::vector<int> &cells_id,const int new_lib_cell_id);
     int modify_circuit_since_divide_cell(int c,const int new_lib_cell_id1,const int new_lib_cell_id2);
-
+    
+    void cluster_cells(const std::vector<int> &cell_ids); 
     // return 0: success , return 1: legalize fail, return 2: no ff, return 3: others
-    int cluster_cells(const std::vector<int> &cell_ids); 
-    int cluster_cells_without_check(const std::vector<int> &cell_ids); 
-    // return 0: success , return 1: legalize fail, return 2: no ff target to decluster,return 3: no ff for decluster, return 4: others
+    int cluster_cells_with_legal(const std::vector<int> &cell_ids);     
     int decluster_cells(int cid);    
 
     bool is_sequential_cell(int cell_id){
@@ -166,7 +165,7 @@ public:
     }
     bool check_cells_location();
     void reassign_pins_cell_id();
-    int swap_ff(int cell_id,int new_lib_cell_id);
+    void swap_ff(int cell_id,int new_lib_cell_id);
     int cluster_clk_group(const std::vector<std::vector<int>> &clustering_res);
     void update_cell(const Cell &cell);
     std::pair<int,int> find_best_cell_new_location_according_to_timer(const std::vector<int> &cells_id);

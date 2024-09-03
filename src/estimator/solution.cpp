@@ -12,12 +12,13 @@ void SolutionManager::keep_solution(int which_solution){
     const timer::Timer &timer = timer::Timer::get_instance();
     const legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
     const CostCalculator &cost_calculator = CostCalculator::get_instance();    
+    double cost = cost_calculator.get_cost();
     if(which_solution == 0){
-        init_solution.update(cost_calculator,netlist,timer,legalizer);
+        init_solution.update(cost,netlist,timer,legalizer);
     }else if(which_solution == 1){
-        current_solution.update(cost_calculator,netlist,timer,legalizer);
+        current_solution.update(cost,netlist,timer,legalizer);
     }else{
-        best_solution.update(cost_calculator,netlist,timer,legalizer);
+        best_solution.update(cost,netlist,timer,legalizer);
     }
 }
 

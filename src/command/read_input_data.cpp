@@ -296,13 +296,17 @@ void CommandManager::read_input_data(const std::string &filename) {
                 if(net.get_is_clock_net() == true){
                     // MAPPING
                     std::unordered_set<int> clk_group;
-                    for(int i=1;i<pin_num;i++){
+                    for(int i=0;i<pin_num;i++){
                         int pin_id = net.get_pins_id().at(i);
-                        const circuit::Pin &pin = original_netlist.get_pin(pin_id);
+                        const circuit::Pin &pin = original_netlist.get_pin(pin_id);                        
+                        if(pin.get_is_port()){
+                            // no cell
+                            continue;
+                        }
                         int cell_id = pin.get_cell_id();
                         const circuit::Cell &cell = original_netlist.get_cell(cell_id);
-                        if(cell.is_sequential() == true){
-                            int ff_cell_id = original_netlist.get_ff_cell_id(cell_id);
+                        if(cell.is_sequential() == true &&  pin.get_is_clk()){
+                            int ff_cell_id = original_netlist.get_ff_cell_id(cell_id);                            
                             clk_group.insert(ff_cell_id);
                         }
                     }                    

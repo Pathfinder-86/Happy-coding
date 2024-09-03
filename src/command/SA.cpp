@@ -63,17 +63,7 @@ void CommandManager::SA() {
             }
             
             std::vector<int> cell_ids = {first_cell_id, second_cell_id};
-            int cluster_res = netlist.cluster_cells(cell_ids);
-            if(cluster_res == 0){
-                std::cout<<"Cluster success"<<std::endl;
-            }else if(cluster_res == -1){
-                std::cout<<"Cluster fail due to legal rollback"<<std::endl;
-                solution_manager.switch_to_current_solution();
-                continue;
-            }else{
-                std::cout<<"Cluster fail"<<std::endl;
-                continue;
-            }
+            netlist.cluster_cells(cell_ids);
         } else {
             // declustering
             // random pick a idx in sequential cells

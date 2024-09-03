@@ -82,10 +82,10 @@ void FFLibcellCostManager::sort_by_cost(){
     }
 }
 
-int FFLibcellCostManager::find_mid_bits_of_lib(){
+void FFLibcellCostManager::find_mid_bits_of_lib(){
     std::vector<int> bits = std::vector<int>(bits_num.begin(),bits_num.end());
     std::sort(bits.begin(),bits.end());    
-    return bits[bits.size()/2];
+    mid_bits_of_lib = bits[bits.size()/2];
 }
 
 void FFLibcellCostManager::find_best_libcell_bits(){
@@ -110,7 +110,7 @@ void FFLibcellCostManager::find_best_libcell_bits(){
     for(int bits : best_libcell_sorted_by_bits){
         int lib_cell_id = best_libcell_bits[bits];
         const std::string &lib_cell_name = design.get_lib_cells().at(lib_cell_id).get_name();
-        std::cout<<"bits: "<<bits<<" best_lib_cell: "<<lib_cell_name<<std::endl;
+        std::cout<<"bits: "<<bits<<" best_lib_cell: "<<lib_cell_name<<" cost:"<<bits_ff_libcells_cost[bits].front().get_total_cost() / (1.0 * bits)<<std::endl;
     }
 }
 

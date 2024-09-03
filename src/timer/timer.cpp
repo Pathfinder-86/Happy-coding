@@ -565,7 +565,7 @@ double Timer::calculate_timing_cost_after_cluster(const std::vector<int> &cells_
         std::cout<<"Original Cell:"<<cell_id<<" TNS:"<<cell.get_tns()<<std::endl;
     }    
     double new_tns = 0.0;
-    update_cells_slack(affected_cells_id_set);
+    update_cells_tns(affected_cells_id_set);
     for(int cell_id : affected_cells_id_set){
         const circuit::Cell &cell = netlist.get_cell(cell_id);   
         new_tns += cell.get_tns();        
@@ -579,7 +579,14 @@ double Timer::calculate_timing_cost_after_cluster(const std::vector<int> &cells_
     return cost_change;
 }
 
-void Timer::update_cells_slack(const std::unordered_set<int> &affected_cells_id){
+void Timer::update_timing_and_cells_tns(int cell_id){
+    update_timing(cell_id);
+    const std::unordered_set<int> &affected_cells_id_set = get_affected_cells_id_by_affected_d_pins_id();
+    update_cells_tns(affected_cells_id_set);
+}
+
+
+void Timer::update_cells_tns(const std::unordered_set<int> &affected_cells_id){
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     for(int cell_id : affected_cells_id){
         circuit::Cell &cell = netlist.get_mutable_cell(cell_id);
