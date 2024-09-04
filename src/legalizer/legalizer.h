@@ -138,6 +138,8 @@ class Legalizer{
         void update_cell_to_site(int cell_id, const std::vector<int> &site_ids);
         bool replace_all();
         void tetris();
+        bool replace_all_by_timing_order(const std::vector<int> &cells_id);
+        bool tetris_by_timing_order(const std::vector<int> &cells_id);
     private:   
         std::vector<Row> rows; // const 
         std::unordered_map<int,std::vector<int>> row_id_to_sites_id_map; //const

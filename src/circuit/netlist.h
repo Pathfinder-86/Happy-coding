@@ -110,9 +110,9 @@ public:
     }
     // set_cells 
     void switch_to_other_solution(const std::vector<Cell> &cells, const std::unordered_set<int> &sequential_cells_id,const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids,const std::unordered_map<int,int> &ff_cell_id_to_clk_group_id){
-        set_cells(cells);
-        reassign_pins_cell_id();
+        set_cells(cells);        
         set_sequential_cells_id(sequential_cells_id);
+        reassign_pins_cell_id();
         set_clk_group_id_to_ff_cell_ids(clk_group_id_to_ff_cell_ids);
         set_ff_cell_id_to_clk_group_id(ff_cell_id_to_clk_group_id);        
     }

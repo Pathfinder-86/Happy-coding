@@ -32,13 +32,34 @@ int main(int argc,char *argv[]) {
 
         //command_manager.extremely_fast_clustering_limit_high_bits();    
 
-        if(!command_manager.extremely_fast_clustering()){
-            // timing cost dominated case
+
+        //Power / Area case
+        //if(!command_manager.clustering_exist_noncritical_q_pins_cells()){
+        //    //timing
+        //    command_manager.swap_ff();
+        //}
+
+        
+        //Power / Area case test
+        if(!command_manager.clustering_exist_noncritical_q_pins_cells_and_legal_by_timing()){
+            //timing
             command_manager.swap_ff();
         }
-
+        
         //command_manager.swap_ff();
-        //command_manager.write_output_data(output_file);
+        //command_manager.iterate_clustering_exist_noncritical_q_pins_cells();                    
+
+
+        //Power / Area case    
+        //if(!command_manager.extremely_fast_clustering()){            
+        //   //timing
+        //    command_manager.swap_ff();
+        //}
+
+
+
+
+
         if(std::get<bool>(config_manager.get_config_value("run_tiny"))) {
             command_manager.write_output_data_from_best_solution(output_file);
             command_manager.write_output_layout_data("plot/tiny/layout.txt");

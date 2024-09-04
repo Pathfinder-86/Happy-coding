@@ -32,6 +32,13 @@ namespace command {
         void clustering_clean_solution();
         bool extremely_fast_clustering_limit_high_bits();
         void swap_ff();
+        bool clustering_all_noncritical_q_pins_cells();        
+        bool clustering_exist_noncritical_q_pins_cells_limit_high_bits();
+        // best so far
+        bool clustering_exist_noncritical_q_pins_cells();
+        bool clustering_exist_noncritical_q_pins_cells_and_legal_by_timing();
+
+        bool iterate_clustering_exist_noncritical_q_pins_cells();        
         void dry_banking();
     private:
         CommandManager() {}

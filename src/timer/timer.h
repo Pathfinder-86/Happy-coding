@@ -52,6 +52,13 @@ public:
     void add_d_pin_node(int d_pin_node_id){
         d_pin_nodes_id.push_back(d_pin_node_id);
     }
+    void reset_max_delay(){
+        delay = 0.0;
+        max_delay_input_pin_id = -1;
+    }    
+    int fanout_size(){
+        return fanout_input_delay_nodes_id.size() + d_pin_nodes_id.size();
+    }
 private:
     int id;
     double delay;
@@ -296,7 +303,16 @@ public:
     void add_intput_delay_node_to_pins_id();
 
     void update_timing_and_cells_tns(int cell_id);
-
+    void reset_output_delay_nodes_max_delay();
+    void update_timing_and_cells_tns();
+    
+    std::unordered_set<int> collect_non_critical_q_pins_id();
+    std::unordered_set<int> collect_all_non_critical_q_pin_ffs_id();
+    std::unordered_set<int> collect_exist_non_critical_q_pin_ffs_id();
+    std::vector<int> get_critical_q_pins_id();
+    std::vector<int> get_sorted_critical_q_pins_id();
+    std::vector<int> get_sorted_critical_ffs_id();
+    std::vector<int> get_timing_ranking_legalize_order_ffs_id();
 private:
     // slack on each node
     std::unordered_map<int,DpinNode> dpin_nodes;
@@ -304,7 +320,6 @@ private:
     std::unordered_map<int,InputDelayNode> input_delay_nodes;
     std::unordered_map<int,OutputDelayNode> output_delay_nodes;
     std::unordered_set<int> affected_d_pins_id_set;    
-
 };
 
 
