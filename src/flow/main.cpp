@@ -74,20 +74,20 @@ int main(int argc,char *argv[]) {
 
         //command_manager.swap_ff();
         
-        if(!command_manager.extremely_fast_clustering_and_legal_by_timing()){
-            //timing
-            //command_manager.swap_ff_and_legal_by_timing();
-            command_manager.swap_ff_and_legal_by_timing();
-        }
-        // cell move
-        int max_iteration = 2;
-        int count = 0;
-        while(command_manager.cell_move_recover_tns()){
-            count++;
-            if(count >= max_iteration){
-                break;
-            }
-        }
+        //if(!command_manager.extremely_fast_clustering_and_legal_by_timing()){
+        //    //timing
+        //    //command_manager.swap_ff_and_legal_by_timing();
+        //    command_manager.swap_ff_and_legal_by_timing();
+        //}
+        //// cell move
+        //int max_iteration = 2;
+        //int count = 0;
+        //while(command_manager.cell_move_recover_tns()){
+        //    count++;
+        //    if(count >= max_iteration){
+        //        break;
+        //    }
+        //}
         
 
 
@@ -96,10 +96,12 @@ int main(int argc,char *argv[]) {
 
 
         //Power / Area case    
-        //if(!command_manager.extremely_fast_clustering()){            
-        //   //timing
-        //    command_manager.swap_ff();
-        //}
+        if(!command_manager.final_version_dry_banking()){            
+            //timing
+            command_manager.swap_ff();
+        }else{
+            command_manager.legal_by_timing();            
+        }
 
 
 

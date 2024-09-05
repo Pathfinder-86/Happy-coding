@@ -1734,22 +1734,45 @@ bool CommandManager::final_version_dry_banking(){
     const std::unordered_map<int,std::unordered_set<int>> &clk_group_id_to_ff_cell_ids = netlist.get_clk_group_id_to_ff_cell_ids();     
     const std::vector<int> &best_libcell_sorted_by_bits =  ff_libcells_cost_manager.get_best_libcell_sorted_by_bits();
     const int N = best_libcell_sorted_by_bits.size();
+
+    //std::vector<double> cluster_size_factor = {1.0,0.85,0.7};
+
     timer.collect_non_critical_ffs_id();
-    const std::unordered_set<int> &noncritical_q_pins_cells = timer.get_exist_non_critical_q_pin_ffs_id();    
-    int all_ffs_size = netlist.get_sequential_cells_id().size();
-    std::cout<<"Exist Non critical q pins cells:"<<noncritical_q_pins_cells.size()<<" Total sequential cells:"<<all_ffs_size<<" percentage:"<<static_cast<double>(noncritical_q_pins_cells.size())/all_ffs_size<<std::endl;
+    std::unordered_set<int> noncritical_q_pins_cells = timer.get_exist_non_critical_q_pin_ffs_id();
+    const std::vector<int> &sorted_critical_ffs_id = timer.get_sorted_critical_ffs_id();
+    int all_size = netlist.get_sequential_cells_id().size();
+
+    int noncritical_size = noncritical_q_pins_cells.size();
+    int cluster_size = static_cast<int>(0.85 * all_size);
+    if(noncritical_size < cluster_size){
+        // add less delay critical cells to noncritical cells
+        int add_size = cluster_size - noncritical_size;
+        int idx = sorted_critical_ffs_id.size() - 1;
+        for(int i=idx;i>=0;i--){
+            int cell_id = sorted_critical_ffs_id[i];
+            if(noncritical_q_pins_cells.find(cell_id) == noncritical_q_pins_cells.end()){
+                noncritical_q_pins_cells.insert(cell_id);
+                add_size--;
+            }
+            if(add_size <= 0){
+                break;
+            }            
+        }        
+    }
+
+    std::cout<<"Exist Non critical q pins cells:"<<noncritical_q_pins_cells.size()<<" Total sequential cells:"<<all_size<<" percentage:"<<static_cast<double>(noncritical_q_pins_cells.size())/all_size<<std::endl;
 
     for(const auto &it : clk_group_id_to_ff_cell_ids){        
         std::vector<std::vector<int>> clustering_res; 
 
         const std::unordered_set<int> &ff_cell_ids = it.second;        
-        std::unordered_set<int> noncritical_ff_cell_ids;
+        std::vector<int> noncritical_ff_cell_ids;
         
         // swap critical cells to best libcell
         for(int cell_id : ff_cell_ids){
             const circuit::Cell &cell = netlist.get_cell(cell_id);
             if(noncritical_q_pins_cells.find(cell_id) != noncritical_q_pins_cells.end()){
-                noncritical_ff_cell_ids.insert(cell_id);
+                noncritical_ff_cell_ids.push_back(cell_id);
             }else{
                 int best_lib_cell_id = ff_libcells_cost_manager.get_best_libcell_for_bit(cell.get_bits());            
                 int current_lib_cell_id = cell.get_lib_cell_id();
