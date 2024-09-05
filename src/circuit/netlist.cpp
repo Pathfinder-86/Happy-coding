@@ -211,18 +211,18 @@ void Netlist::modify_circuit_since_merge_cell(const std::vector<int> &cells_id, 
 
     // find best location
     // method1: testcase1: 786516747
-    int new_cell_x = 0,new_cell_y = 0;
-    for(int cell_id : cells_id){
-        const Cell &cell = get_cell(cell_id);
-        new_cell_x += cell.get_x();
-        new_cell_y += cell.get_y();
-    }
-    new_cell_x /= cells_id.size();
-    new_cell_y /= cells_id.size();
+    //int new_cell_x = 0,new_cell_y = 0;
+    //for(int cell_id : cells_id){
+    //    const Cell &cell = get_cell(cell_id);
+    //    new_cell_x += cell.get_x();
+    //    new_cell_y += cell.get_y();
+    //}
+    //new_cell_x /= cells_id.size();
+    //new_cell_y /= cells_id.size();
 
     // mothod2: testcase1: 793146036
-    //int new_cell_x,new_cell_y;
-    //std::tie(new_cell_x,new_cell_y) = find_best_cell_new_location_according_to_timer(cells_id);
+    int new_cell_x,new_cell_y;
+    std::tie(new_cell_x,new_cell_y) = find_best_cell_new_location_according_to_timer(cells_id);
 
 
     cell1.set_x(new_cell_x);
@@ -292,39 +292,37 @@ std::pair<int,int> Netlist::find_best_cell_new_location_according_to_timer(const
     for(int cell_id : cells_id){
         const Cell &cell = get_cell(cell_id);        
         const std::vector<int> &input_pins_id = cell.get_input_pins_id();
-        const std::vector<int> &output_pins_id = cell.get_output_pins_id();
+        const std::vector<int> &output_pins_id = cell.get_output_pins_id();        
         for(int pin_id : input_pins_id){
-            // D pin
-            const timer::DpinNode &dpin_node = timer.get_dpin_node(pin_id);
-            int from_pin = dpin_node.get_from_pin_id();
-            if(dpin_node.get_is_from_pin_q_pin()){  
-                const Pin &pin = get_pin(from_pin);
-                new_cell_x += pin.get_x();
-                new_cell_y += pin.get_y();                
-            }else{
-                const Pin &pin = original_netlist.get_pin(from_pin);
-                new_cell_x += pin.get_x();
-                new_cell_y += pin.get_y();                
-            }
-            pin_count++;
+            // D pin            
+            std::pair<int,int> fanin_loc = timer.get_ff_input_pin_fanin_location(pin_id);
+            const Pin &pin = get_pin(pin_id);            
+            new_cell_x += (fanin_loc.first + pin.get_x());            
+            new_cell_y += (fanin_loc.second + pin.get_y());
+            pin_count+=2;
         }
         for(int pin_id : output_pins_id){
             // Q pin
+            double factor = timer.is_critical_q_pin(pin_id) ? 1.2 : 1.0;
             const timer::QpinNode &qpin_node = timer.get_qpin_node(pin_id);
             const std::vector<int> &fanout_input_delay_node_id = qpin_node.get_fanout_input_delay_nodes_id();
             for(int comb_input_id : fanout_input_delay_node_id){
                 const Pin &pin = original_netlist.get_pin(comb_input_id);
-                new_cell_x += pin.get_x();
-                new_cell_y += pin.get_y();
+                new_cell_x += pin.get_x() * factor;
+                new_cell_y += pin.get_y() * factor;
                 pin_count++;
             }
             const std::vector<int> &d_pin_node_id = qpin_node.get_d_pin_nodes_id();
             for(int d_pin_id : d_pin_node_id){
                 const Pin &pin = get_pin(d_pin_id);
-                new_cell_x += pin.get_x();
-                new_cell_y += pin.get_y();
+                new_cell_x += pin.get_x() * factor;
+                new_cell_y += pin.get_y() * factor;
                 pin_count++;
-            }            
+            }
+            const Pin &pin = get_pin(pin_id);
+            new_cell_x += pin.get_x();
+            new_cell_y += pin.get_y();
+            pin_count++;
         }
     }
     new_cell_x /= pin_count;
@@ -567,20 +565,34 @@ void Netlist::update_cell(const Cell &cell){
 }
 
 void Netlist::reassign_pins_cell_id(){
+    const design::Design &design = design::Design::get_instance();    
     for(int cid : sequential_cells_id){
         const Cell &cell = get_cell(cid);
         int cell_id = cell.get_id();
         std::vector<int> input_pins_id = cell.get_input_pins_id();
-        std::vector<int> output_pins_id = cell.get_output_pins_id();
-        for(int pin_id : input_pins_id){
-            Pin &pin = get_mutable_pin(pin_id);
-            pin.set_cell_id(cell_id);
-        }
-        for(int pin_id : output_pins_id){
-            Pin &pin = get_mutable_pin(pin_id);
-            pin.set_cell_id(cell_id);
+        std::vector<int> output_pins_id = cell.get_output_pins_id();        
+        int lib_cell_id = cell.get_lib_cell_id();
+        const design::LibCell &lib_cell = design.get_lib_cell(lib_cell_id);
+        const std::vector<std::pair<double, double>> &input_pins_loc = lib_cell.get_input_pins_position();
+        const std::vector<std::pair<double, double>> &output_pins_loc = lib_cell.get_output_pins_position();
+        for(int i=0;i<cell.get_bits();i++){
+            int input_pin_id = input_pins_id[i];
+            int output_pin_id = output_pins_id[i];
+            Pin &input_pin = get_mutable_pin(input_pin_id);
+            Pin &output_pin = get_mutable_pin(output_pin_id);
+            input_pin.set_cell_id(cell_id);
+            output_pin.set_cell_id(cell_id);
+            input_pin.set_offset_x(input_pins_loc[i].first);
+            input_pin.set_offset_y(input_pins_loc[i].second);
+            output_pin.set_offset_x(output_pins_loc[i].first);
+            output_pin.set_offset_y(output_pins_loc[i].second);
+            input_pin.set_x(cell.get_x() + input_pins_loc[i].first);
+            input_pin.set_y(cell.get_y() + input_pins_loc[i].second);
+            output_pin.set_x(cell.get_x() + output_pins_loc[i].first);
+            output_pin.set_y(cell.get_y() + output_pins_loc[i].second);
         }
     }
 }
+
 
 } // namespace circuit

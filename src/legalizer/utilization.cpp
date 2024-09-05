@@ -53,15 +53,7 @@ void UtilizationCalculator::init_utilization_calculator(){
         }
     }
     this->max_utilization = design.get_bin_max_utilization();
-    std::cout<<"UTIL max_utilization: "<<max_utilization<<std::endl;
-    for(int i=0; i<row; i++){
-        for(int j=0; j<col; j++){
-            if(is_overflow_bin(i, j)){
-                overflow_bins_id.insert(std::make_pair(i, j));
-                std::cout<<"UTIL init bins has already overflow ("<<i<<","<<j<<"), may need to remove sites, and replacement ff on related-sites"<<std::endl;
-            }            
-        }
-    }
+    update_overflow_bins();
 }
 
 void UtilizationCalculator::reset_bins_utilization(){
@@ -81,9 +73,8 @@ void UtilizationCalculator::update_overflow_bins(){
 }
 
 
-void UtilizationCalculator::update_bins_utilization(){
-    reset_bins_utilization();
-
+void UtilizationCalculator::update_bins_utilization(){    
+    reset_bins_utilization();    
     const circuit::Netlist& netlist = circuit::Netlist::get_instance();
     const std::unordered_set<int>& sequential_cells_id = netlist.get_sequential_cells_id();
     const std::vector<circuit::Cell>& cells = netlist.get_cells();
@@ -109,15 +100,8 @@ void UtilizationCalculator::update_bins_utilization(){
                 bins[i][j].add_utilization(overlap_area / bin_area);
             }
         }        
-    }
-
-    for(int i=0; i<bins.size(); i++){
-        for(int j=0; j<bins[i].size(); j++){
-            if(is_overflow_bin(i, j)){
-                overflow_bins_id.insert(std::make_pair(i, j));
-            }
-        }
-    }
+    }    
+    update_overflow_bins();    
 }
 
 void UtilizationCalculator::remove_cells(const std::vector<int> &cells_id){

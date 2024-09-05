@@ -54,9 +54,9 @@ public:
     }
     void reset_max_delay(){
         delay = 0.0;
-        max_delay_input_pin_id = -1;
+        max_delay_input_pin_id = -1;    
     }    
-    int fanout_size(){
+    int get_fanout_size() const {
         return fanout_input_delay_nodes_id.size() + d_pin_nodes_id.size();
     }
 private:
@@ -305,21 +305,79 @@ public:
     void update_timing_and_cells_tns(int cell_id);
     void reset_output_delay_nodes_max_delay();
     void update_timing_and_cells_tns();
-    
-    std::unordered_set<int> collect_non_critical_q_pins_id();
-    std::unordered_set<int> collect_all_non_critical_q_pin_ffs_id();
-    std::unordered_set<int> collect_exist_non_critical_q_pin_ffs_id();
+        
+    void collect_all_non_critical_q_pin_ffs_id();
+    void collect_exist_non_critical_q_pin_ffs_id();
+
     std::vector<int> get_critical_q_pins_id();
     std::vector<int> get_sorted_critical_q_pins_id();
     std::vector<int> get_sorted_critical_ffs_id();
     std::vector<int> get_timing_ranking_legalize_order_ffs_id();
+    std::pair<int,int> get_ff_input_pin_fanin_location(int d_pin_id) const;
+    bool is_critical_q_pin(int q_pin_id) const{
+        return critical_q_pin_set.find(q_pin_id) != critical_q_pin_set.end();
+    }
+    void add_critical_q_pin(int q_pin_id){
+        critical_q_pin_set.insert(q_pin_id);
+    }
+    void reset_critical_q_pin(){
+        critical_q_pin_set.clear();
+    }
+    const std::unordered_set<int>& get_critical_q_pin_set() const{
+        return critical_q_pin_set;
+    }
+    void update_critical_q_pin();
+    void add_critical_ffs_id(int cell_id){
+        critical_ffs_set.insert(cell_id);
+    }
+    void reset_critical_ffs_id(){
+        critical_ffs_set.clear();
+    }
+    const std::unordered_set<int>& get_critical_ffs_id() const{
+        return critical_ffs_set;
+    }
+    bool is_critical_ffs_id(int cell_id) const{
+        return critical_ffs_set.find(cell_id) != critical_ffs_set.end();
+    }
+    void collect_non_critical_ffs_id();
+    void add_exist_non_critical_q_pin_ffs_id(int cell_id){
+        exist_non_critical_q_pin_ffs_id.insert(cell_id);
+    }
+    void add_all_non_critical_q_pin_ffs_id(int cell_id){
+        all_non_critical_q_pin_ffs_id.insert(cell_id);
+    }
+    void reset_all_non_critical_q_pin_ffs_id(){
+        all_non_critical_q_pin_ffs_id.clear();
+    }
+    void reset_exist_non_critical_q_pin_ffs_id(){
+        exist_non_critical_q_pin_ffs_id.clear();
+    }
+    void reset_critical_info(){
+        reset_critical_q_pin();
+        reset_critical_ffs_id();
+        reset_all_non_critical_q_pin_ffs_id();
+        reset_exist_non_critical_q_pin_ffs_id();   
+    }
+    const std::unordered_set<int>& get_exist_non_critical_q_pin_ffs_id() const{
+        return exist_non_critical_q_pin_ffs_id;
+    }
+    const std::unordered_set<int>& get_all_non_critical_q_pin_ffs_id() const{
+        return all_non_critical_q_pin_ffs_id;
+    }
 private:
     // slack on each node
     std::unordered_map<int,DpinNode> dpin_nodes;
     std::unordered_map<int,QpinNode> qpin_nodes;
     std::unordered_map<int,InputDelayNode> input_delay_nodes;
     std::unordered_map<int,OutputDelayNode> output_delay_nodes;
-    std::unordered_set<int> affected_d_pins_id_set;    
+    std::unordered_set<int> affected_d_pins_id_set;
+    
+    // changeable: call collect_non_critical_ffs_id to update
+    std::unordered_set<int> critical_q_pin_set;
+    std::unordered_set<int> critical_ffs_set;
+    std::unordered_set<int> exist_non_critical_q_pin_ffs_id;
+    std::unordered_set<int> all_non_critical_q_pin_ffs_id;
+
 };
 
 

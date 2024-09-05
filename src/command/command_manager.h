@@ -32,14 +32,19 @@ namespace command {
         void clustering_clean_solution();
         bool extremely_fast_clustering_limit_high_bits();
         void swap_ff();
+        void swap_ff_and_legal_by_timing();
         bool clustering_all_noncritical_q_pins_cells();        
         bool clustering_exist_noncritical_q_pins_cells_limit_high_bits();
         // best so far
         bool clustering_exist_noncritical_q_pins_cells();
         bool clustering_exist_noncritical_q_pins_cells_and_legal_by_timing();
+        bool extremely_fast_clustering_and_legal_by_timing();
 
         bool iterate_clustering_exist_noncritical_q_pins_cells();        
-        void dry_banking();
+        bool dry_banking();
+        bool legal_by_timing();
+        bool cell_move_recover_tns();
+        bool final_version_dry_banking();
     private:
         CommandManager() {}
         CommandManager(const CommandManager&) = delete;

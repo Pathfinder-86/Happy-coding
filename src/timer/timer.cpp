@@ -17,20 +17,12 @@ namespace timer {
 
 
 void OutputDelayNode::propagate_delay(){
-    Timer &timer = Timer::get_instance();
-    const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
-    const std::string &output_pin_name = original_netlist.get_pin_name(id);
-    for(int fanout_input_delay_node_id : fanout_input_delay_nodes_id){           
-        const std::string &input_pin_name = original_netlist.get_pin_name(fanout_input_delay_node_id);
-        //std::cout<<"PROPAGATE: "<<output_pin_name<<" to input_pin"<<input_pin_name<<" delay: "<<get_delay()<<std::endl;
+    Timer &timer = Timer::get_instance();        
+    for(int fanout_input_delay_node_id : fanout_input_delay_nodes_id){                           
         timer.get_mutable_input_delay_node(fanout_input_delay_node_id).update( get_delay() );
     }
 
     for(int d_pin_node_id : d_pin_nodes_id){            
-        int original_d_pin_id = original_netlist.get_original_pin_id(d_pin_node_id);
-        const std::string &d_pin_name = original_netlist.get_pin_name(original_d_pin_id);
-        //std::cout<<"PROPAGATE: "<<output_pin_name<<" to d_pin"<<d_pin_name<<" delay: "<<get_delay()<<std::endl;
-
         timer.get_mutable_dpin_node(d_pin_node_id).update( get_delay() );
     }
 }
@@ -148,37 +140,20 @@ void QpinNode::init_propagate_delay(){
 void QpinNode::propagate_delay(){
     timer::Timer &timer = Timer::get_instance();
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
     const circuit::Pin &q_pin = netlist.get_pin(id);
-    int q_pin_cell_id = q_pin.get_cell_id();
-    int origin_q_pin_id = original_netlist.get_original_pin_id(q_pin_cell_id);
-    int origin_q_pin_cell_id = original_netlist.get_original_cell_id(q_pin_cell_id);
-    const std::string &q_pin_name = original_netlist.get_pin_name(origin_q_pin_id);
-    const std::string &q_pin_cell_name = original_netlist.get_cell_name(origin_q_pin_cell_id);
-
-    //std::cout<<"QPIN:"<<q_pin_cell_name<<" pin:"<<q_pin_name<<" propagate to: "<<std::endl;
 
     for(int fanout_input_delay_node_id : fanout_input_delay_nodes_id){      
-        const std::string &fanout_input_delay_node_name = original_netlist.get_pin_name(fanout_input_delay_node_id);
-        //std::cout<<"Input_pin:"<<fanout_input_delay_node_name<<std::endl;
-
         timer.get_mutable_input_delay_node(fanout_input_delay_node_id). update( get_delay());
     }   
     for(int d_pin_node_id : d_pin_nodes_id){            
-        int origin_d_pin_id = original_netlist.get_original_pin_id(d_pin_node_id);        
-        const std::string &d_pin_name = original_netlist.get_pin_name(origin_d_pin_id);
-        //std::cout<<"D_pin:"<<d_pin_name<<std::endl;     
-
         timer.get_mutable_dpin_node(d_pin_node_id).update( get_delay() );
     }
-    //std::cout<<"-------------------"<<std::endl;
 }
 
 void QpinNode::update(){
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const circuit::Pin &pin = netlist.get_pin(id);
-    const circuit::Cell &cell = netlist.get_cell(pin.get_cell_id());        
-    const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();            
+    const circuit::Cell &cell = netlist.get_cell(pin.get_cell_id());    
     set_delay(cell.get_delay());
     propagate_delay();
 }
@@ -560,12 +535,21 @@ void Timer::reset_output_delay_nodes_max_delay(){
 
 void Timer::update_timing_and_cells_tns(){
     reset_output_delay_nodes_max_delay();
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
+    const std::vector<circuit::Pin> &pins = original_netlist.get_pins();
+    for(const auto &pin : pins){
+        if(pin.is_input_port()){                        
+            output_delay_nodes.at(pin.get_id()).propagate_delay();
+        }
+    }
+
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
     for(int cell_id : netlist.get_sequential_cells_id()){
         update_timing(cell_id);
     }
     const std::unordered_set<int> &affected_cells_id_set = get_affected_cells_id_by_affected_d_pins_id();
     update_cells_tns(affected_cells_id_set);
+    collect_non_critical_ffs_id();
 } 
 
 void Timer::update_timing_and_cells_tns(int cell_id){
@@ -583,87 +567,72 @@ void Timer::update_cells_tns(const std::unordered_set<int> &affected_cells_id){
     }
 }
 
-std::unordered_set<int> Timer::collect_non_critical_q_pins_id(){
-    std::unordered_set<int> non_critical_input_pins_id;
-    // add all
-    for(auto &it : input_delay_nodes){
-        non_critical_input_pins_id.insert(it.first);
-    }
-
-    // remove
+void Timer::update_critical_q_pin(){
+    reset_critical_q_pin();
+    reset_critical_ffs_id();
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
     for(auto &it : output_delay_nodes){        
         const OutputDelayNode &output_delay_node = it.second;        
+        if(output_delay_node.is_port()){
+            continue;
+        }
         int max_delay_input_pin_id = output_delay_node.get_max_delay_input_pin_id();
-        non_critical_input_pins_id.erase(max_delay_input_pin_id);
-    }
-
-    std::unordered_set<int> non_critical_q_pins_id;
-    for(int input_pin_id : non_critical_input_pins_id){
-        if( input_delay_nodes[input_pin_id].get_is_from_pin_q_pin() ){
-            int q_pin_id = input_delay_nodes[input_pin_id].get_from_pin_id();
-            non_critical_q_pins_id.insert(q_pin_id);
+        const InputDelayNode &input_delay_node = input_delay_nodes.at(max_delay_input_pin_id);
+        if(input_delay_node.get_is_from_pin_q_pin()){
+            int q_pin = input_delay_node.get_from_pin_id();
+            add_critical_q_pin(q_pin);        
+            int cell_id = netlist.get_pin(q_pin).get_cell_id();
+            add_critical_ffs_id(cell_id);
         }
     }
-    return non_critical_q_pins_id;
 }
 
+void Timer::collect_non_critical_ffs_id(){
+    reset_critical_info();
+    update_critical_q_pin();
+    std::cout<<"critical_ffs_set size:"<<critical_ffs_set.size()<<std::endl;
+    collect_exist_non_critical_q_pin_ffs_id();
+    std::cout<<"exist_non_critical_q_pin_ffs_id size:"<<exist_non_critical_q_pin_ffs_id.size()<<std::endl;
+    collect_all_non_critical_q_pin_ffs_id();
+    std::cout<<"all_non_critical_q_pin_ffs_id size:"<<all_non_critical_q_pin_ffs_id.size()<<std::endl;
+}
 
-std::unordered_set<int> Timer::collect_exist_non_critical_q_pin_ffs_id(){
-    const std::unordered_set<int> &non_critical_q_pins_id = collect_non_critical_q_pins_id();
-    std::unordered_set<int> non_critical_q_pin_ffs_id;
+void Timer::collect_exist_non_critical_q_pin_ffs_id(){                
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
     const std::vector<circuit::Cell> &cells = netlist.get_cells();
     const std::unordered_set<int> &sequential_cells_id = netlist.get_sequential_cells_id();
     for(int cell_id : sequential_cells_id){
         const circuit::Cell &cell = netlist.get_cell(cell_id);
         const std::vector<int> &output_pins_id = cell.get_output_pins_id();
+        bool is_all_critical = true;
         for(int output_pin_id : output_pins_id){
-            if(non_critical_q_pins_id.find(output_pin_id) != non_critical_q_pins_id.end()){
-                non_critical_q_pin_ffs_id.insert(cell_id);
+            if(!is_critical_q_pin(output_pin_id)){
+                is_all_critical = false;
                 break;
             }
         }
-    }
-    return non_critical_q_pin_ffs_id;
+        if(!is_all_critical){
+            add_exist_non_critical_q_pin_ffs_id(cell_id);       
+        }        
+    }    
 }
 
-std::unordered_set<int> Timer::collect_all_non_critical_q_pin_ffs_id(){
-    const std::unordered_set<int> &non_critical_q_pins_id = collect_non_critical_q_pins_id();
-    std::unordered_set<int> non_critical_q_pin_ffs_id;
+void Timer::collect_all_non_critical_q_pin_ffs_id(){            
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
     const std::vector<circuit::Cell> &cells = netlist.get_cells();
     const std::unordered_set<int> &sequential_cells_id = netlist.get_sequential_cells_id();
     for(int cell_id : sequential_cells_id){
-        const circuit::Cell &cell = netlist.get_cell(cell_id);
-        const std::vector<int> &output_pins_id = cell.get_output_pins_id();
-        bool is_all_non_critical = true;
-        for(int output_pin_id : output_pins_id){
-            if(non_critical_q_pins_id.find(output_pin_id) == non_critical_q_pins_id.end()){
-                is_all_non_critical = false;
-                break;
-            }                                            
+        if(is_critical_ffs_id(cell_id)){
+            continue;
         }
-        if(is_all_non_critical){
-            non_critical_q_pin_ffs_id.insert(cell_id);
-        }
-    }
-    return non_critical_q_pin_ffs_id;
+        add_all_non_critical_q_pin_ffs_id(cell_id);
+    }        
 }
 
 std::vector<int> Timer::get_critical_q_pins_id(){
+    update_critical_q_pin();
     std::vector<int> critical_q_pins_id;
-    std::unordered_set<int> critical_q_pins_id_set;
-    
-    for(auto &it : output_delay_nodes){
-        const OutputDelayNode &output_delay_node = it.second;
-        int max_delay_input_pin_id = output_delay_node.get_max_delay_input_pin_id();
-        const InputDelayNode &input_delay_node = input_delay_nodes[max_delay_input_pin_id];
-        if(input_delay_node.get_is_from_pin_q_pin()){
-            int q_pin = input_delay_node.get_from_pin_id();
-            critical_q_pins_id_set.insert(q_pin);
-        }
-    }            
-    critical_q_pins_id.insert(critical_q_pins_id.end(),critical_q_pins_id_set.begin(),critical_q_pins_id_set.end());
+    critical_q_pins_id.insert(critical_q_pins_id.end(),critical_q_pin_set.begin(),critical_q_pin_set.end());
     return critical_q_pins_id;
 }
 
@@ -672,6 +641,9 @@ std::vector<int> Timer::get_sorted_critical_q_pins_id(){
     std::unordered_map<int,double> critical_q_pins_id_delay_map;
     for(auto &it : output_delay_nodes){
         const OutputDelayNode &output_delay_node = it.second;
+        if(output_delay_node.is_port()){
+            continue;
+        }
         int max_delay_input_pin_id = output_delay_node.get_max_delay_input_pin_id();        
         const InputDelayNode &input_delay_node = input_delay_nodes[max_delay_input_pin_id];
         if(input_delay_node.get_is_from_pin_q_pin()){
@@ -698,27 +670,26 @@ std::vector<int> Timer::get_sorted_critical_q_pins_id(){
 
 std::vector<int> Timer::get_sorted_critical_ffs_id(){
     
-    std::unordered_map<int,double> critical_q_pins_id_delay_map;
+    std::unordered_map<int,double> critical_ffs_id_delay_map;
+    std::vector<std::pair<int,double>> critical_ffs_id_delay;
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();    
 
     for(auto &it : output_delay_nodes){
         const OutputDelayNode &output_delay_node = it.second;
-        int max_delay_input_pin_id = output_delay_node.get_max_delay_input_pin_id();        
-        const InputDelayNode &input_delay_node = input_delay_nodes[max_delay_input_pin_id];
+        if(output_delay_node.is_port()){
+            continue;
+        }
+        int max_delay_input_pin_id = output_delay_node.get_max_delay_input_pin_id();                    
+        const InputDelayNode &input_delay_node = input_delay_nodes.at(max_delay_input_pin_id);
         if(input_delay_node.get_is_from_pin_q_pin()){
-            int q_pin = input_delay_node.get_from_pin_id();            
-            double delay = output_delay_node.get_delay();            
-            critical_q_pins_id_delay_map[q_pin] += delay;
+            int q_pin_id = input_delay_node.get_from_pin_id();
+            double delay = output_delay_node.get_delay() * output_delay_node.get_fanout_size();
+            const circuit::Pin &q_pin = netlist.get_pin(q_pin_id);
+            int cell_id = q_pin.get_cell_id();
+            critical_ffs_id_delay_map[cell_id] += delay;
         }
     }
-    std::unordered_map<int,double> critical_ffs_id_delay_map;
-    std::vector<std::pair<int,double>> critical_ffs_id_delay;
-    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    for(auto &it : critical_q_pins_id_delay_map){
-        int q_pin_id = it.first;
-        const circuit::Pin &q_pin = netlist.get_pin(q_pin_id);
-        int cell_id = q_pin.get_cell_id();
-        critical_ffs_id_delay_map[cell_id] += it.second;
-    }
+
     for(auto &it : critical_ffs_id_delay_map){
         critical_ffs_id_delay.push_back(it);
     }
@@ -735,15 +706,13 @@ std::vector<int> Timer::get_sorted_critical_ffs_id(){
 
 std::vector<int> Timer::get_timing_ranking_legalize_order_ffs_id(){
     std::vector<int> legalize_order_ffs_id;
-    const std::vector<int> &sorted_critical_ffs_id = get_sorted_critical_ffs_id();
-    std::unordered_set<int> sorted_critical_ffs_id_set(sorted_critical_ffs_id.begin(),sorted_critical_ffs_id.end());
+    const std::vector<int> &sorted_critical_ffs_id = get_sorted_critical_ffs_id();    
 
     const circuit::Netlist &netlist = circuit::Netlist::get_instance();
-    std::vector<std::pair<int,double>> non_critical_ffs_id_tns;
-    std::vector<int> sorted_non_critical_ffs_id_tns;    
+    std::vector<std::pair<int,double>> non_critical_ffs_id_tns;    
 
     for(int cell_id : netlist.get_sequential_cells_id()){
-        if(sorted_critical_ffs_id_set.find(cell_id) == sorted_critical_ffs_id_set.end()){
+        if(!is_critical_ffs_id(cell_id)){
             const circuit::Cell &cell = netlist.get_cell(cell_id);
             double tns = cell.get_tns();
             non_critical_ffs_id_tns.push_back(std::make_pair(cell_id,tns));
@@ -754,19 +723,34 @@ std::vector<int> Timer::get_timing_ranking_legalize_order_ffs_id(){
         return a.second > b.second;
     });
 
-
+    legalize_order_ffs_id.reserve(sorted_critical_ffs_id.size() + non_critical_ffs_id_tns.size());
+    legalize_order_ffs_id.insert(legalize_order_ffs_id.end(),sorted_critical_ffs_id.begin(),sorted_critical_ffs_id.end());
     for(auto &it : non_critical_ffs_id_tns){
-        sorted_non_critical_ffs_id_tns.push_back(it.first);
+        legalize_order_ffs_id.push_back(it.first);
     }
     
-    legalize_order_ffs_id.insert(legalize_order_ffs_id.end(),sorted_critical_ffs_id.begin(),sorted_critical_ffs_id.end());
-    legalize_order_ffs_id.insert(legalize_order_ffs_id.end(),sorted_non_critical_ffs_id_tns.begin(),sorted_non_critical_ffs_id_tns.end());
+    std::cout<<"Critical FFS ID Size:"<<sorted_critical_ffs_id.size()<<" Non Critical FFS ID Size:"<<non_critical_ffs_id_tns.size()<<std::endl;
+            
     if(legalize_order_ffs_id.size() != netlist.get_sequential_cells_id().size()){
         std::cout<<"ERROR: Legalize Order FFS ID Size Not Equal to Sequential Cells ID Size"<<std::endl;
     }    
     return legalize_order_ffs_id;
 }
 
-
+std::pair<int,int> Timer:: get_ff_input_pin_fanin_location(int input_pin_id) const{
+    const DpinNode &dpin_node = dpin_nodes.at(input_pin_id);
+    std::pair<int,int> location;
+    if(dpin_node.get_is_from_pin_q_pin()){
+        int q_pin_id = dpin_node.get_from_pin_id();        
+        const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+        const circuit::Pin &q_pin = netlist.get_pin(q_pin_id);
+        return std::make_pair(q_pin.get_x(),q_pin.get_y());
+    }else{
+        int output_pin_id = dpin_node.get_from_pin_id();
+        const circuit::OriginalNetlist &original_netlist = circuit::OriginalNetlist::get_instance();
+        const circuit::Pin &output_pin = original_netlist.get_pin(output_pin_id);
+        return std::make_pair(output_pin.get_x(),output_pin.get_y());
+    }   
+}
 
 } // namespace timer

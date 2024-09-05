@@ -39,13 +39,58 @@ int main(int argc,char *argv[]) {
         //    command_manager.swap_ff();
         //}
 
-        
+
         //Power / Area case test
-        if(!command_manager.clustering_exist_noncritical_q_pins_cells_and_legal_by_timing()){
+        //if(!command_manager.clustering_exist_noncritical_q_pins_cells_and_legal_by_timing()){
+        //  //timing
+        //  command_manager.swap_ff_and_legal_by_timing();
+        //}
+
+
+        // Dryrun
+
+        //command_manager.swap_ff_and_legal_by_timing();
+
+        // power / area
+        //if(command_manager.dry_banking()){
+        //    command_manager.legal_by_timing();
+        //    command_manager.cell_move_recover_tns();
+        //}else{
+        //    //timing
+        //    command_manager.swap_ff();
+        //    command_manager.cell_move_recover_tns();
+        //}
+
+        
+        //command_manager.swap_ff_and_legal_by_timing();
+        //int max_iteration = 3;
+        //int count = 0;
+        //while(command_manager.cell_move_recover_tns()){
+        //    count++;
+        //    if(count >= max_iteration){
+        //        break;
+        //    }
+        //}
+
+        //command_manager.swap_ff();
+        
+        if(!command_manager.extremely_fast_clustering_and_legal_by_timing()){
             //timing
-            command_manager.swap_ff();
+            //command_manager.swap_ff_and_legal_by_timing();
+            command_manager.swap_ff_and_legal_by_timing();
+        }
+        // cell move
+        int max_iteration = 2;
+        int count = 0;
+        while(command_manager.cell_move_recover_tns()){
+            count++;
+            if(count >= max_iteration){
+                break;
+            }
         }
         
+
+
         //command_manager.swap_ff();
         //command_manager.iterate_clustering_exist_noncritical_q_pins_cells();                    
 

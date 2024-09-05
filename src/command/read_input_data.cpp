@@ -31,6 +31,7 @@ void CommandManager::read_input_data(const std::string &filename) {
     design::Design &design = design::Design::get_instance();
     timer::Timer &timer = timer::Timer::get_instance();
     legalizer::Legalizer &legalizer = legalizer::Legalizer::get_instance();
+    legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
     const runtime::RuntimeManager& runtime_manager = runtime::RuntimeManager::get_instance();
 
     std::ifstream file(filename);
@@ -359,16 +360,10 @@ void CommandManager::read_input_data(const std::string &filename) {
     
     
     std::cout<<"LEGAL:: INIT"<<std::endl;
-    // update bins
-    legalizer::UtilizationCalculator &utilization_calculator = legalizer::UtilizationCalculator::get_instance();
+    // update bins    
     utilization_calculator.init_utilization_calculator();
     // check legal
-    legalizer.init();
-    if(legalizer.valid()){
-        std::cout<<"LEGAL:: FINISH"<<std::endl;
-    }else{
-        std::cout<<"LEGAL:: INIT_LEGAL FAIL may need to cluster to reduce area"<<std::endl;
-    }
+    legalizer.init();    
     runtime_manager.get_runtime();
 
 

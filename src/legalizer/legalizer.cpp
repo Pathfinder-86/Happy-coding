@@ -240,12 +240,35 @@ bool Legalizer::replace_all(){
     std::cout<<"LEGAL:: replace_all size"<<not_on_site_cells_id.size()<<std::endl;
     cell_id_to_site_id_map.clear();
     site_id_to_cell_id_map.clear();
-    tetris();    
+    if(!tetris()){
+        std::cerr<<"LEGAL:: replace_all tetris failed"<<std::endl;
+        return false;
+    }
     return valid();
 }
 
 
-void Legalizer::tetris(){
+bool Legalizer::replace_some(const std::unordered_set<int> &cells_id){    
+    const circuit::Netlist &netlist = circuit::Netlist::get_instance();
+    not_on_site_cells_id = cells_id;
+    std::cout<<"LEGAL:: replace_some size"<<not_on_site_cells_id.size()<<std::endl;
+    for(int cell_id : cells_id){
+        for(int site_id : cell_id_to_site_id_map[cell_id]){
+            site_id_to_cell_id_map.erase(site_id);
+            empty_sites_id.insert(site_id);
+        }
+        cell_id_to_site_id_map.erase(cell_id);
+    }    
+    if(!tetris()){
+        std::cerr<<"LEGAL:: replace_some tetris failed"<<std::endl;
+        return false;
+    }
+    return valid();
+}
+
+
+bool Legalizer::tetris(){
+    runtime::RuntimeManager &runtime_manager = runtime::RuntimeManager::get_instance();
     // libcell_view
     circuit::Netlist &netlist = circuit::Netlist::get_instance();
     const std::vector<circuit::Cell> &cells = netlist.get_cells();
@@ -287,12 +310,14 @@ void Legalizer::tetris(){
         return a[1]*a[2] > b[1]*b[2];
     });    
 
+
     // convert empty_sites to views
     std::vector<std::unordered_set<int>> views_empty_sites_id(views.size(),empty_sites_id);
-    std::vector<std::unordered_set<int>> views_available_sites_id(views.size(),std::unordered_set<int>());
+    std::vector<std::unordered_set<int>> views_available_sites_id(views.size(),std::unordered_set<int>());    
     std::vector<std::unordered_map<int,std::vector<int>>> views_available_sites_id_contain_sites_id(views.size());
     std::vector<std::unordered_map<int,int>> views_sites_id_to_root_site_id(views.size());
 
+    
     for(int id : empty_sites_id){
         const Site &site = sites[id];
         int root_site_id = site.get_id();
@@ -348,6 +373,7 @@ void Legalizer::tetris(){
         }
     }
 
+
     // bins multi-view graph completed
 
     for(auto &it : views){
@@ -360,7 +386,8 @@ void Legalizer::tetris(){
             int y = cell.get_y();
             // find nearest empty site on view[view_id]
             int min_dis = INT_MAX;
-            int nearest_site_id = -1;
+            int nearest_site_id = -1;            
+                        
             for(int site_id : views_available_sites_id[view_id]){
                 const Site &site = sites.at(site_id);
                 int site_x = site.get_x();
@@ -371,9 +398,12 @@ void Legalizer::tetris(){
                     nearest_site_id = site_id;
                 }
             }
+            
 
-            if(nearest_site_id == -1){                
-                continue;
+
+            if(nearest_site_id == -1){                                
+                std::cout<<"Can't find nearest site for cell "<<cell_id<<std::endl;
+                return false;
             }
                 
 
@@ -411,9 +441,12 @@ void Legalizer::tetris(){
             if(site.get_x() != x || site.get_y() != y){                
                 cell.move(site.get_x(),site.get_y());  
             }
-            not_on_site_cells_id.erase(cell_id); 
+            not_on_site_cells_id.erase(cell_id);             
         }
     }  
+    
+    runtime_manager.get_runtime();
+    return true;
 }
 
 
